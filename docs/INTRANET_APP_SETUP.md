@@ -1,0 +1,45 @@
+# 42 Intranet App Registration (Swifty Companion)
+
+Use this after the code is ready. These steps create the OAuth2 app and give you the client ID/secret.
+
+## 1) Create a new application
+1. Log in to the 42 intranet.
+2. Go to your **Profile** → **Settings** → **API** (or directly to the **Applications** section).
+3. Click **Create a new application**.
+
+## 2) Fill the form
+- **Name**: `companion` (or any unique name)
+- **Description**: `Swifty Companion (RN Expo)`
+- **Application type**: choose **Confidential** (if available) or **Web**.
+- **Website**: you can use `https://example.com` or your Git repo URL.
+- **Redirect URI**: add a valid URL even if you won’t use it. Example: `https://localhost`.
+- **Scopes**: select **public** data (the minimum needed to read profiles).
+- **Public**: leave **unchecked** unless you want the app to be public.
+
+Click **Submit**.
+
+## 3) Copy credentials
+After saving, you’ll see:
+- **Client ID**
+- **Client Secret**
+
+Keep them private.
+
+## 4) Add credentials to your project
+1. In the project root, create a `.env` file:
+   ```
+   FT_CLIENT_ID=YOUR_42_APP_CLIENT_ID
+   FT_CLIENT_SECRET=YOUR_42_APP_CLIENT_SECRET
+   API_BASE_URL=https://api.intra.42.fr
+   ```
+2. Make sure `.env` is **not** committed (it’s already in `.gitignore`).
+
+## 5) Run the app
+```
+npm run android
+```
+
+If the API returns errors, double-check:
+- The scopes include **public** data.
+- The client ID/secret are correct.
+- The login exists in 42.
