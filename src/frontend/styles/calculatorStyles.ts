@@ -40,6 +40,25 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       borderColor: colors.border,
       marginBottom: spacing.md,
     },
+    levelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    levelPill: {
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    levelPillText: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '600',
+    },
     tableHeader: {
       flexDirection: 'row',
       alignItems: 'center',

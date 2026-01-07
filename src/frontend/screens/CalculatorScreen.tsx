@@ -22,7 +22,7 @@ export default function CalculatorScreen() {
   const { user } = useAuth();
   const catalog = useMemo(() => getProjectCatalog(), []);
 
-  const [level, setLevel] = useState(() => getPrimaryLevel(user?.cursus_users));
+  const [level] = useState(() => getPrimaryLevel(user?.cursus_users));
   const [projects, setProjects] = useState<Array<{
     id: string;
     name: string;
@@ -32,8 +32,6 @@ export default function CalculatorScreen() {
   }>>([
     { id: 'project-1', name: '', experience: 0, grade: '100', bonus: false },
   ]);
-  const [result, setResult] = useState<number | null>(null);
-  const [progression, setProgression] = useState<number | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const addProject = () => {
@@ -70,16 +68,14 @@ export default function CalculatorScreen() {
     setProjects((prev) => prev.filter((project) => project.id !== id));
   };
 
-  const handleCalculate = () => {
+  const { result, progression } = useMemo(() => {
     const currentLevel = Number(level);
     if (
       Number.isNaN(currentLevel) ||
       currentLevel < 0 ||
       projects.length === 0
     ) {
-      setResult(null);
-      setProgression(null);
-      return;
+      return { result: null, progression: null };
     }
 
     const currentLevelFloor = Math.floor(currentLevel);
@@ -107,21 +103,22 @@ export default function CalculatorScreen() {
     const fraction = (finalXp - rangeStart) / (rangeEnd - rangeStart);
     const computedLevel = newLevel + Math.max(0, Math.min(1, fraction));
 
-    setResult(computedLevel);
-    setProgression(computedLevel - currentLevel);
-  };
+    return {
+      result: computedLevel,
+      progression: computedLevel - currentLevel,
+    };
+  }, [level, projects]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.card}>
         <Text style={styles.title}>XP Calculator</Text>
-        <Text style={styles.label}>Current level</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="decimal-pad"
-          value={String(level)}
-          onChangeText={(value) => setLevel(Number(value))}
-        />
+        <View style={styles.levelRow}>
+          <Text style={styles.label}>Current level</Text>
+          <View style={styles.levelPill}>
+            <Text style={styles.levelPillText}>{Number.isFinite(level) ? level.toFixed(2) : '0.00'}</Text>
+          </View>
+        </View>
         <View style={styles.tableHeader}>
           <Text style={styles.label}>Name</Text>
           <Text style={styles.label}>Mark</Text>
@@ -182,14 +179,8 @@ export default function CalculatorScreen() {
         <TouchableOpacity style={styles.addRowButton} onPress={addProject}>
           <Text style={styles.addRowText}>Add a project +</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleCalculate}>
-          <Text style={styles.buttonText}>Calculate</Text>
-        </TouchableOpacity>
         {result !== null ? (
-          <>
-            <Text style={styles.result}>End level: {result.toFixed(2)}</Text>
-            <Text style={styles.hint}>Progression: +{progression?.toFixed(2)}</Text>
-          </>
+          <Text style={styles.result}>End level: {result.toFixed(2)}</Text>
         ) : null}
       </View>
     </ScrollView>
