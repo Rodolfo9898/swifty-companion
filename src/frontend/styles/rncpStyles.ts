@@ -37,6 +37,10 @@ export default function createRncpStyles(colors: ThemeColors) {
       borderColor: colors.border,
       minWidth: 140,
     },
+    levelTab: {
+      minWidth: 0,
+      paddingHorizontal: spacing.sm,
+    },
     tabActive: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,

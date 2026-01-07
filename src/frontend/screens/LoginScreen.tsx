@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '../AuthContext';
 import createLoginStyles from '../styles/loginStyles';
@@ -28,10 +28,12 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Welcome to Swifty Companion</Text>
+        <View style={styles.titleRow}>
+          <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.title}>Welcome to 42 Tools</Text>
+        </View>
         <Text style={styles.subtitle}>
-          Sign in with your 42 intra account to access the stats, calculator, RNCP tracker, and
-          student listings.
+          Sign in with your 42 intra account to access the app.
         </Text>
         <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
           {loading ? (

@@ -22,11 +22,20 @@ export default function createLoginStyles(colors: ThemeColors) {
       shadowRadius: 12,
       elevation: 4,
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    logo: {
+      width: 32,
+      height: 32,
+    },
     title: {
       color: colors.text,
       fontSize: 26,
       fontWeight: '700',
-      marginBottom: spacing.sm,
     },
     subtitle: {
       color: colors.textSubtle,
@@ -39,6 +48,15 @@ export default function createLoginStyles(colors: ThemeColors) {
       borderRadius: 12,
       paddingVertical: 12,
       alignItems: 'center',
+    },
+    buttonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    buttonLogo: {
+      width: 18,
+      height: 18,
     },
     buttonText: {
       color: colors.accentText,

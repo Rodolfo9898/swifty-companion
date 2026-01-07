@@ -14,12 +14,12 @@ const TILES: Array<{
   subtitle: string;
   route: keyof RootStackParamList;
 }> = [
-  { title: 'Search', subtitle: 'Find any 42 student', route: 'Search' },
-  { title: 'Leaderboard', subtitle: 'Browse campus users', route: 'Leaderboard' },
-  { title: 'Stats', subtitle: 'All-campus metrics', route: 'Stats' },
-  { title: 'XP Calculator', subtitle: 'Project XP projection', route: 'Calculator' },
-  { title: 'RNCP', subtitle: 'Track RNCP projects', route: 'Rncp' },
-  { title: 'Bonus', subtitle: 'Token refresh tools', route: 'Bonus' },
+  { title: 'Search', subtitle: 'Find any 42 student.', route: 'Search' },
+  { title: 'Leaderboard', subtitle: 'Compare yourself with the rest of 42.', route: 'Leaderboard' },
+  { title: 'Stats', subtitle: 'All campus metrics.', route: 'Stats' },
+  { title: 'XP Calculator', subtitle: 'Plan your journey.', route: 'Calculator' },
+  { title: 'RNCP', subtitle: 'Track RNCP progress.', route: 'Rncp' },
+  { title: 'Bonus', subtitle: 'Token refresh tools.', route: 'Bonus' },
 ];
 
 export default function HomeScreen({ navigation }: Props) {
@@ -40,7 +40,7 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.welcome}>
             {user ? `Welcome back, ${user.displayname}` : 'Welcome back'}
           </Text>
-          <Text style={styles.subtitle}>Choose a section to explore the 42 stats.</Text>
+          <Text style={styles.subtitle}>Choose a section to explore.</Text>
         </View>
       </View>
 

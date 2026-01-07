@@ -96,6 +96,28 @@ export default function RncpScreen() {
 
   const { projectsById, experienceProjectIds } = useMemo(() => getRncpCatalog(), []);
   const catalogTracks = useMemo(() => buildCatalogTracks(), []);
+  const normalizeLabel = useCallback(
+    (value: string) =>
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, ''),
+    [],
+  );
+  const getDefaultTrackId = useCallback(
+    (level: 6 | 7) => {
+      const tracks = catalogTracks.filter((item) => item.level === level);
+      if (level === 6) {
+        const preferred = tracks.find((item) => {
+          const label = normalizeLabel(item.title);
+          return label.includes('web') && label.includes('mobile');
+        });
+        if (preferred) return preferred.id;
+      }
+      return tracks[0]?.id ?? '';
+    },
+    [catalogTracks, normalizeLabel],
+  );
   const progress = useMemo(
     () => buildRncpProgress(profile, catalogTracks, projectsById),
     [profile, catalogTracks, projectsById],
@@ -197,6 +219,12 @@ export default function RncpScreen() {
       active = false;
     };
   }, [profile, loadedEvents]);
+
+  useEffect(() => {
+    if (!selectedTrackId) {
+      setSelectedTrackId(getDefaultTrackId(selectedLevel));
+    }
+  }, [getDefaultTrackId, selectedLevel, selectedTrackId]);
 
   useEffect(() => {
     if (!profile || loadedGroupProjects) return;
@@ -322,17 +350,14 @@ export default function RncpScreen() {
           return (
             <TouchableOpacity
               key={`rncp-${level}`}
-              style={[styles.tab, isActive && styles.tabActive]}
+              style={[styles.tab, styles.levelTab, isActive && styles.tabActive]}
               onPress={() => {
                 setSelectedLevel(level as 6 | 7);
-                setSelectedTrackId('');
+                setSelectedTrackId(getDefaultTrackId(level as 6 | 7));
               }}
             >
               <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                 RNCP {level}
-              </Text>
-              <Text style={[styles.tabTitle, isActive && styles.tabTitleActive]}>
-                Choose an option
               </Text>
             </TouchableOpacity>
           );
@@ -396,14 +421,11 @@ export default function RncpScreen() {
           {selected.sections.map((section) => (
             <View key={section.section.title} style={styles.card}>
               <Text style={styles.sectionTitle}>
-                Validate {section.section.requiredProjects} {section.section.title} projects
+                {section.section.title}
               </Text>
               <Text style={styles.progressHint}>
                 I must have validated a number of projects greater than or equal to {section.section.requiredProjects}.
               </Text>
-              <View style={styles.tagRow}>
-                <Text style={styles.tagBadge}>{section.section.title}</Text>
-              </View>
               <View style={styles.progressRow}>
                 <Text style={styles.progressLabel}>Projects</Text>
                 <ProgressBar value={ratio(section.completedProjects, section.section.requiredProjects)} />
