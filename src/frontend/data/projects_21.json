@@ -5999,6 +5999,26 @@
       "exam": false,
       "parent": null,
       "children": []
+    },
+    {
+      "id": 742,
+      "name": "Piscine Swift iOS",
+      "slug": "piscine-swift-ios",
+      "difficulty": 0,
+      "completions": 0,
+      "duration": 0,
+      "created_at": null,
+      "updated_at": null,
+      "exam": false,
+      "parent": null,
+      "children": [
+        {
+          "id": 1606
+        },
+        {
+          "id": 1607
+        }
+      ]
     }
   ]
 }

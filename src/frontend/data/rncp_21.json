@@ -9,7 +9,7 @@
   "rncp": [
     {
       "type": "rncp-6",
-      "title": "Développement web et mobile",
+      "title": "D\u00e9veloppement web et mobile",
       "level": 17.0,
       "number_of_events": 10,
       "number_of_experiences": 2,
@@ -37,17 +37,20 @@
           "experience": 10000.0,
           "number_of_projects": 2,
           "projects": [
-            1379,
+            2552,
+            1427,
             1395,
+            2360,
+            1379,
             1406,
-            2355
+            742
           ]
         }
       ]
     },
     {
       "type": "rncp-6",
-      "title": "Développement applicatif",
+      "title": "D\u00e9veloppement applicatif",
       "level": 17.0,
       "number_of_events": 10,
       "number_of_experiences": 2,
@@ -124,7 +127,7 @@
     },
     {
       "type": "rncp-7",
-      "title": "Système d'information et réseaux",
+      "title": "Syst\u00e8me d'information et r\u00e9seaux",
       "level": 21.0,
       "number_of_events": 15,
       "number_of_experiences": 2,
@@ -203,7 +206,7 @@
     },
     {
       "type": "rncp-7",
-      "title": "Architecture des bases de données et data",
+      "title": "Architecture des bases de donn\u00e9es et data",
       "level": 21.0,
       "number_of_events": 15,
       "number_of_experiences": 2,

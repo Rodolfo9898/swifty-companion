@@ -30,6 +30,12 @@ const projectCache = new Map<string, { id: number; difficulty: number }>();
 const tagCache = new Map<number, string[]>();
 const GROUP_CACHE_KEY = 'rncp-group-count';
 const EVENT_CACHE_KEY = 'rncp-event-count';
+const STATIC_EVENT_DATA: Record<string, { events: string[] }> = {
+  'rperez-t': require('../data/events_rperezt.json'),
+};
+const STATIC_GROUP_DATA: Record<string, { projects: { id: number }[] }> = {
+  'rperez-t': require('../data/group_projects_done.json'),
+};
 
 export default function RncpScreen() {
   const { colors } = useTheme();
@@ -110,6 +116,18 @@ export default function RncpScreen() {
 
     const loadEvents = async () => {
       try {
+        const staticEvents = STATIC_EVENT_DATA[profile.login];
+        if (staticEvents?.events?.length) {
+          if (active) {
+            setEventCount(staticEvents.events.length);
+            setLoadedEvents(true);
+            await SecureStore.setItemAsync(EVENT_CACHE_KEY, String(staticEvents.events.length));
+            await writeEventsCache({ count: staticEvents.events.length, names: staticEvents.events });
+            const meta = await readCacheMeta();
+            await writeCacheMeta({ ...meta, eventsUpdatedAt: Date.now() });
+          }
+          return;
+        }
         const fresh = await isCacheFresh('events');
         if (fresh) {
           const cached = await readEventsCache<{ count: number }>();
@@ -186,6 +204,19 @@ export default function RncpScreen() {
 
     const loadGroupProjects = async () => {
       try {
+        const staticGroups = STATIC_GROUP_DATA[profile.login];
+        if (staticGroups?.projects?.length) {
+          const count = staticGroups.projects.length;
+          if (active) {
+            setGroupProjectCount(count);
+            setLoadedGroupProjects(true);
+            await SecureStore.setItemAsync(GROUP_CACHE_KEY, String(count));
+            await writeGroupCache({ count, projects: staticGroups.projects });
+            const meta = await readCacheMeta();
+            await writeCacheMeta({ ...meta, groupUpdatedAt: Date.now() });
+          }
+          return;
+        }
         const fresh = await isCacheFresh('group');
         if (fresh) {
           const cached = await readGroupCache<{ count: number }>();
