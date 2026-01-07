@@ -132,6 +132,83 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       color: colors.text,
       fontSize: 12,
     },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    roadmapSection: {
+      marginTop: spacing.lg,
+      gap: spacing.sm,
+    },
+    roadmapSaveRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      alignItems: 'center',
+    },
+    roadmapInput: {
+      flex: 1,
+      backgroundColor: colors.surfaceAlt,
+      color: colors.text,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      fontSize: 12,
+    },
+    roadmapSaveButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    roadmapSaveText: {
+      color: colors.accentText,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    roadmapList: {
+      gap: spacing.xs,
+    },
+    roadmapItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.xs,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    roadmapName: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '600',
+      flex: 1,
+    },
+    roadmapMeta: {
+      color: colors.textMuted,
+      fontSize: 11,
+    },
+    roadmapActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      alignItems: 'center',
+      marginLeft: spacing.sm,
+    },
+    roadmapActionText: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    roadmapDeleteText: {
+      color: colors.error,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: 12,
+    },
     row: {
       flexDirection: 'row',
       gap: spacing.md,

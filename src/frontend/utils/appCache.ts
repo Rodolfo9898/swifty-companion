@@ -4,6 +4,7 @@ const CACHE_DIR = `${FileSystem.documentDirectory}rncp-cache/`;
 const EVENT_CACHE = `${CACHE_DIR}events.json`;
 const GROUP_CACHE = `${CACHE_DIR}group-projects.json`;
 const META_CACHE = `${CACHE_DIR}meta.json`;
+const CALCULATOR_CACHE = `${CACHE_DIR}calculator-roadmaps.json`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -74,11 +75,28 @@ export async function isCacheFresh(kind: 'events' | 'group') {
   return Date.now() - updatedAt < DAY_MS;
 }
 
+export async function readCalculatorRoadmaps<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(CALCULATOR_CACHE);
+    if (!info.exists) return [];
+    const content = await FileSystem.readAsStringAsync(CALCULATOR_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return [];
+  }
+}
+
+export async function writeCalculatorRoadmaps(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(CALCULATOR_CACHE, JSON.stringify(data));
+}
+
 export function getCachePaths() {
   return {
     dir: CACHE_DIR,
     events: EVENT_CACHE,
     group: GROUP_CACHE,
+    calculator: CALCULATOR_CACHE,
     meta: META_CACHE,
   };
 }

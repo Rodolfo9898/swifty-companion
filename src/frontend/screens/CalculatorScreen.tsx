@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '../AuthContext';
+import { readCalculatorRoadmaps, writeCalculatorRoadmaps } from '../utils/appCache';
 import createCalculatorStyles from '../styles/calculatorStyles';
 import { getProjectCatalog, searchProjects } from '../utils/projectCatalog';
 import { useTheme } from '../ThemeContext';
@@ -16,6 +17,33 @@ function getPrimaryLevel(levels: Array<{ level: number }> | undefined) {
   return Math.max(...levels.map((entry) => entry.level));
 }
 
+type ProjectEntry = {
+  id: string;
+  name: string;
+  experience: number;
+  grade: string;
+  bonus: boolean;
+};
+
+type RoadmapEntry = {
+  name: string;
+  projects: ProjectEntry[];
+  updatedAt: number;
+};
+
+function normalizeProjects(projects: ProjectEntry[]) {
+  if (!projects.length) {
+    return [{ id: 'project-1', name: '', experience: 0, grade: '100', bonus: false }];
+  }
+  return projects.map((project, index) => ({
+    id: `project-${index + 1}`,
+    name: project.name ?? '',
+    experience: Number(project.experience) || 0,
+    grade: project.grade ?? '100',
+    bonus: Boolean(project.bonus),
+  }));
+}
+
 export default function CalculatorScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createCalculatorStyles(colors), [colors]);
@@ -23,16 +51,26 @@ export default function CalculatorScreen() {
   const catalog = useMemo(() => getProjectCatalog(), []);
 
   const [level] = useState(() => getPrimaryLevel(user?.cursus_users));
-  const [projects, setProjects] = useState<Array<{
-    id: string;
-    name: string;
-    experience: number;
-    grade: string;
-    bonus: boolean;
-  }>>([
+  const [projects, setProjects] = useState<ProjectEntry[]>([
     { id: 'project-1', name: '', experience: 0, grade: '100', bonus: false },
   ]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [roadmapName, setRoadmapName] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedRoadmaps, setSavedRoadmaps] = useState<RoadmapEntry[]>([]);
+
+  useEffect(() => {
+    let isActive = true;
+    const loadRoadmaps = async () => {
+      const cached = await readCalculatorRoadmaps<RoadmapEntry[]>();
+      if (!isActive) return;
+      setSavedRoadmaps(Array.isArray(cached) ? cached : []);
+    };
+    loadRoadmaps();
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const addProject = () => {
     setProjects((prev) => [
@@ -66,6 +104,44 @@ export default function CalculatorScreen() {
 
   const removeProject = (id: string) => {
     setProjects((prev) => prev.filter((project) => project.id !== id));
+  };
+
+  const saveRoadmap = async () => {
+    const trimmed = roadmapName.trim();
+    if (!trimmed) {
+      setSaveError('Give this roadmap a name to save it.');
+      return;
+    }
+    const normalizedProjects = normalizeProjects(projects);
+    const next = [...savedRoadmaps];
+    const existingIndex = next.findIndex(
+      (entry) => entry.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+    const entry = {
+      name: trimmed,
+      projects: normalizedProjects,
+      updatedAt: Date.now(),
+    };
+    if (existingIndex >= 0) {
+      next[existingIndex] = entry;
+    } else {
+      next.unshift(entry);
+    }
+    setSavedRoadmaps(next);
+    setRoadmapName('');
+    setSaveError(null);
+    await writeCalculatorRoadmaps(next);
+  };
+
+  const loadRoadmap = (entry: RoadmapEntry) => {
+    setProjects(normalizeProjects(entry.projects ?? []));
+    setActiveProjectId(null);
+  };
+
+  const deleteRoadmap = async (name: string) => {
+    const next = savedRoadmaps.filter((entry) => entry.name !== name);
+    setSavedRoadmaps(next);
+    await writeCalculatorRoadmaps(next);
   };
 
   const { result, progression } = useMemo(() => {
@@ -182,6 +258,50 @@ export default function CalculatorScreen() {
         {result !== null ? (
           <Text style={styles.result}>End level: {result.toFixed(2)}</Text>
         ) : null}
+        <View style={styles.roadmapSection}>
+          <Text style={styles.sectionTitle}>Roadmaps</Text>
+          <View style={styles.roadmapSaveRow}>
+            <TextInput
+              style={styles.roadmapInput}
+              value={roadmapName}
+              placeholder="Roadmap name"
+              onChangeText={(value) => {
+                setRoadmapName(value);
+                if (saveError) setSaveError(null);
+              }}
+            />
+            <TouchableOpacity style={styles.roadmapSaveButton} onPress={saveRoadmap}>
+              <Text style={styles.roadmapSaveText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+          {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
+          {savedRoadmaps.length ? (
+            <View style={styles.roadmapList}>
+              {savedRoadmaps.map((entry) => {
+                const label = `${entry.projects.length} projects`;
+                const dateLabel = new Date(entry.updatedAt).toLocaleDateString();
+                return (
+                  <View key={entry.name} style={styles.roadmapItem}>
+                    <View style={styles.cellName}>
+                      <Text style={styles.roadmapName}>{entry.name}</Text>
+                      <Text style={styles.roadmapMeta}>{label} | {dateLabel}</Text>
+                    </View>
+                    <View style={styles.roadmapActions}>
+                      <TouchableOpacity onPress={() => loadRoadmap(entry)}>
+                        <Text style={styles.roadmapActionText}>Load</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => deleteRoadmap(entry.name)}>
+                        <Text style={styles.roadmapDeleteText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.hint}>No roadmaps saved yet.</Text>
+          )}
+        </View>
       </View>
     </ScrollView>
   );
