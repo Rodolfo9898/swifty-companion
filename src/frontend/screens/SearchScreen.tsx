@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -19,14 +19,14 @@ import { useTheme } from '../ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Search'>;
 
-export default function SearchScreen({ navigation }: Props) {
+export default function SearchScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createSearchStyles(colors), [colors]);
   const [login, setLogin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const handleSearch = async () => {
-    const value = login.trim();
+
+  const runSearch = async (value: string) => {
     if (!value) {
       setError('Please enter a login.');
       return;
@@ -44,6 +44,17 @@ export default function SearchScreen({ navigation }: Props) {
       setLoading(false);
     }
   };
+
+  const handleSearch = async () => {
+    const value = login.trim();
+    await runSearch(value);
+  };
+
+  useEffect(() => {
+    const initialLogin = route.params?.initialLogin?.trim();
+    if (!initialLogin) return;
+    setLogin(initialLogin);
+  }, [route.params?.initialLogin]);
 
   return (
     <KeyboardAvoidingView

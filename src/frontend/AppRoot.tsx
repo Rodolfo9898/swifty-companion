@@ -23,7 +23,7 @@ import { ThemeProvider, useTheme } from './ThemeContext';
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
-  Search: undefined;
+  Search: { initialLogin?: string; autoSearch?: boolean } | undefined;
   Profile: { login: string; initialProfile?: FortyTwoUser };
   Bonus: undefined;
   Stats: undefined;

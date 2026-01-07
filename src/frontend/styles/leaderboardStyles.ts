@@ -31,6 +31,70 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     picker: {
       color: colors.text,
     },
+    tabRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+      alignItems: 'center',
+    },
+    tabActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    tabText: {
+      color: colors.text,
+      fontWeight: '600',
+    },
+    tabTextActive: {
+      color: colors.accentText,
+    },
+    filterRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    filterGroup: {
+      flex: 1,
+    },
+    compareButton: {
+      marginTop: spacing.md,
+      backgroundColor: colors.accent,
+      borderRadius: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    compareButtonText: {
+      color: colors.accentText,
+      fontWeight: '700',
+    },
+    rankingMeta: {
+      marginTop: spacing.sm,
+      gap: spacing.xs,
+    },
+    rankingActions: {
+      marginTop: spacing.md,
+      gap: spacing.sm,
+    },
+    resetButton: {
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    resetButtonText: {
+      color: colors.text,
+      fontWeight: '600',
+    },
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -59,10 +123,35 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       marginTop: 2,
       fontSize: 12,
     },
+    currentBadge: {
+      alignSelf: 'flex-start',
+      marginTop: spacing.xs,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    currentBadgeText: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    levelBlock: {
+      marginLeft: 'auto',
+      alignItems: 'flex-end',
+      gap: 2,
+    },
+    levelLabel: {
+      color: colors.textMuted,
+      fontSize: 10,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
     level: {
       color: colors.text,
       fontWeight: '700',
-      marginLeft: 'auto',
       fontSize: 13,
     },
     pagination: {

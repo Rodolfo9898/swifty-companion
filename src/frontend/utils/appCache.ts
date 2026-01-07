@@ -5,6 +5,8 @@ const EVENT_CACHE = `${CACHE_DIR}events.json`;
 const GROUP_CACHE = `${CACHE_DIR}group-projects.json`;
 const META_CACHE = `${CACHE_DIR}meta.json`;
 const CALCULATOR_CACHE = `${CACHE_DIR}calculator-roadmaps.json`;
+const LEADERBOARD_CACHE = `${CACHE_DIR}leaderboard.json`;
+const LEADERBOARD_RANKING_CACHE = `${CACHE_DIR}leaderboard-ranking.json`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -91,12 +93,46 @@ export async function writeCalculatorRoadmaps(data: unknown) {
   await FileSystem.writeAsStringAsync(CALCULATOR_CACHE, JSON.stringify(data));
 }
 
+export async function readLeaderboardCache<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(LEADERBOARD_CACHE);
+    if (!info.exists) return {};
+    const content = await FileSystem.readAsStringAsync(LEADERBOARD_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return {};
+  }
+}
+
+export async function writeLeaderboardCache(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(LEADERBOARD_CACHE, JSON.stringify(data));
+}
+
+export async function readLeaderboardRanking<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(LEADERBOARD_RANKING_CACHE);
+    if (!info.exists) return {};
+    const content = await FileSystem.readAsStringAsync(LEADERBOARD_RANKING_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return {};
+  }
+}
+
+export async function writeLeaderboardRanking(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(LEADERBOARD_RANKING_CACHE, JSON.stringify(data));
+}
+
 export function getCachePaths() {
   return {
     dir: CACHE_DIR,
     events: EVENT_CACHE,
     group: GROUP_CACHE,
     calculator: CALCULATOR_CACHE,
+    leaderboard: LEADERBOARD_CACHE,
+    leaderboardRanking: LEADERBOARD_RANKING_CACHE,
     meta: META_CACHE,
   };
 }

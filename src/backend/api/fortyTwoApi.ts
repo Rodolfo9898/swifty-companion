@@ -84,6 +84,10 @@ export interface UserSummary {
     link?: string | null;
   };
   level?: number;
+  cursus_users?: Array<{
+    level: number;
+    cursus?: { id: number; slug?: string | null; name?: string | null };
+  }>;
 }
 
 export interface MeProfile {
