@@ -3,17 +3,23 @@
     "name": "swifty-companion",
     "slug": "swifty-companion",
     "version": "1.0.0",
+    "owner": "rperezt",
+    "scheme": "swifty-companion",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "plugins": [
+      "expo-secure-store"
+    ],
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rperezt.swifty-companion"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +27,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rperezt.swiftycompanion"
     },
     "web": {
       "favicon": "./assets/favicon.png"

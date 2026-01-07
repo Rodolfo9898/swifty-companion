@@ -12,7 +12,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../AppRoot';
-import { fetchUserProfile } from '../../backend/api/ftApi';
+import { fetchUserProfile } from '../../backend/api/fortyTwoApi';
 import createSearchStyles from '../styles/searchStyles';
 import { useTheme } from '../ThemeContext';
 

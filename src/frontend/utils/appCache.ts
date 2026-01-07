@@ -1,0 +1,84 @@
+import * as FileSystem from 'expo-file-system/legacy';
+
+const CACHE_DIR = `${FileSystem.documentDirectory}rncp-cache/`;
+const EVENT_CACHE = `${CACHE_DIR}events.json`;
+const GROUP_CACHE = `${CACHE_DIR}group-projects.json`;
+const META_CACHE = `${CACHE_DIR}meta.json`;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export interface CacheMeta {
+  eventsUpdatedAt?: number;
+  groupUpdatedAt?: number;
+}
+
+async function ensureCacheDir() {
+  const info = await FileSystem.getInfoAsync(CACHE_DIR);
+  if (!info.exists) {
+    await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+  }
+}
+
+export async function readCacheMeta(): Promise<CacheMeta> {
+  try {
+    const info = await FileSystem.getInfoAsync(META_CACHE);
+    if (!info.exists) return {};
+    const content = await FileSystem.readAsStringAsync(META_CACHE);
+    return JSON.parse(content) as CacheMeta;
+  } catch {
+    return {};
+  }
+}
+
+export async function writeCacheMeta(meta: CacheMeta) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(META_CACHE, JSON.stringify(meta));
+}
+
+export async function readEventsCache<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(EVENT_CACHE);
+    if (!info.exists) return null;
+    const content = await FileSystem.readAsStringAsync(EVENT_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeEventsCache(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(EVENT_CACHE, JSON.stringify(data));
+}
+
+export async function readGroupCache<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(GROUP_CACHE);
+    if (!info.exists) return null;
+    const content = await FileSystem.readAsStringAsync(GROUP_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeGroupCache(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(GROUP_CACHE, JSON.stringify(data));
+}
+
+export async function isCacheFresh(kind: 'events' | 'group') {
+  const meta = await readCacheMeta();
+  const updatedAt = kind === 'events' ? meta.eventsUpdatedAt : meta.groupUpdatedAt;
+  if (!updatedAt) return false;
+  return Date.now() - updatedAt < DAY_MS;
+}
+
+export function getCachePaths() {
+  return {
+    dir: CACHE_DIR,
+    events: EVENT_CACHE,
+    group: GROUP_CACHE,
+    meta: META_CACHE,
+  };
+}
