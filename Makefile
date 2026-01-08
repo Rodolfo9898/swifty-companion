@@ -1,6 +1,6 @@
 APP_DIR := .
 
-.PHONY: install start android ios web clean
+.PHONY: install start android ios run-android run-ios web clean
 
 install:
 	cd $(APP_DIR) && npm install
@@ -13,6 +13,12 @@ android:
 
 ios:
 	cd $(APP_DIR) && npx expo start --ios
+
+run-android:
+	cd $(APP_DIR) && npx expo run:android
+
+run-ios:
+	cd $(APP_DIR) && npx expo run:ios
 
 web:
 	cd $(APP_DIR) && npx expo start --web

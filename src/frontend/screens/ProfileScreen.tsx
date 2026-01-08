@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   Text,
@@ -78,6 +79,8 @@ export default function ProfileScreen({ route }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<ProjectFilter>('all');
+  const [selectedCursusId, setSelectedCursusId] = useState<number | null>(null);
+  const [showCursusMenu, setShowCursusMenu] = useState(false);
 
   const loadProfile = async () => {
     setError(null);
@@ -100,18 +103,61 @@ export default function ProfileScreen({ route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [login]);
 
+  const cursusOptions = useMemo(() => {
+    const seen = new Set<number | string>();
+    const options: FortyTwoCursusUser[] = [];
+    (profile?.cursus_users ?? []).forEach((entry) => {
+      const id = entry.cursus?.id;
+      const name = entry.cursus?.name ?? '';
+      const key = id ?? name;
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      options.push(entry);
+    });
+    return options;
+  }, [profile]);
+
+  useEffect(() => {
+    if (!cursusOptions.length) return;
+    if (selectedCursusId) return;
+    const fortyTwo = cursusOptions.find((entry) => {
+      const slug = entry.cursus?.slug?.toLowerCase() ?? '';
+      const name = entry.cursus?.name?.toLowerCase() ?? '';
+      return slug.includes('42cursus') || name.includes('42cursus');
+    });
+    if (fortyTwo?.cursus?.id) {
+      setSelectedCursusId(fortyTwo.cursus.id);
+      return;
+    }
+    const first = cursusOptions[0]?.cursus?.id;
+    if (first) {
+      setSelectedCursusId(first);
+    }
+  }, [cursusOptions, selectedCursusId]);
+
   const primaryCursus = useMemo(() => getPrimaryCursus(profile?.cursus_users ?? []), [profile]);
-  const skills = primaryCursus?.skills ?? [];
+  const selectedCursus = useMemo(() => {
+    if (!selectedCursusId) return primaryCursus;
+    return (profile?.cursus_users ?? []).find((entry) => entry.cursus?.id === selectedCursusId) ?? primaryCursus;
+  }, [profile, primaryCursus, selectedCursusId]);
+  const skills = selectedCursus?.skills ?? [];
   const projects = useMemo(() => {
     const cursusMap = mapCursusById(profile?.cursus_users ?? []);
     return (profile?.projects_users ?? [])
       .filter((project) => project.status === 'finished' || project.final_mark !== null)
       .filter((project) => {
+        if (!selectedCursusId) return true;
+        if (project.cursus_ids && project.cursus_ids.length > 0) {
+          return project.cursus_ids.includes(selectedCursusId);
+        }
+        return true;
+      })
+      .filter((project) => {
         if (projectFilter === 'all') return true;
         return categorizeProject(project, cursusMap) === projectFilter;
       })
       .sort((a, b) => (b.final_mark ?? 0) - (a.final_mark ?? 0));
-  }, [profile, projectFilter]);
+  }, [profile, projectFilter, selectedCursusId]);
 
   const achievements = useMemo(() => {
     const items = profile?.achievements ?? [];
@@ -183,15 +229,54 @@ export default function ProfileScreen({ route }: Props) {
           <Text style={styles.detailLabel}>Correction points</Text>
           <Text style={styles.detailValue}>{profile.correction_point}</Text>
         </View>
-        <View style={styles.detailRow}>
+         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Level</Text>
-          <Text style={styles.detailValue}>{primaryCursus ? primaryCursus.level.toFixed(2) : 'N/A'}</Text>
+          <Text style={styles.detailValue}>{selectedCursus ? selectedCursus.level.toFixed(2) : 'N/A'}</Text>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Cursus</Text>
-          <Text style={styles.detailValue}>{primaryCursus?.cursus?.name || 'N/A'}</Text>
+        <View style={styles.selectRow}>
+          <Text style={styles.selectLabel}>Cursus</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setShowCursusMenu(true)}
+          >
+            <Text style={styles.dropdownText} numberOfLines={1}>
+              {selectedCursus?.cursus?.name || 'Select cursus'}
+            </Text>
+            <Text style={styles.dropdownIcon}>▾</Text>
+          </TouchableOpacity>
         </View>
+       
       </View>
+      <Modal transparent visible={showCursusMenu} animationType="fade">
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowCursusMenu(false)}
+        >
+          <View style={styles.modalCard}>
+            <ScrollView style={styles.modalList}>
+              {cursusOptions.map((entry) => {
+                const id = entry.cursus?.id ?? null;
+                const isActive = id === selectedCursus?.cursus?.id;
+                return (
+                  <TouchableOpacity
+                    key={entry.cursus?.id ?? entry.cursus?.name}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setSelectedCursusId(id);
+                      setShowCursusMenu(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {entry.cursus?.name ?? 'Unknown cursus'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <View style={styles.section}>
         <SectionHeader label="Skills" icon={require('../../../assets/skills.png')} />
