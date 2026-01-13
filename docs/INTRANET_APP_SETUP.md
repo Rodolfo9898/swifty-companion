@@ -12,7 +12,9 @@ Use this after the code is ready. These steps create the OAuth2 app and give you
 - **Description**: `Swifty Companion (RN Expo)`
 - **Application type**: choose **Confidential** (if available) or **Web**.
 - **Website**: you can use `https://example.com` or your Git repo URL.
-- **Redirect URI**: add a valid URL even if you won’t use it. Example: `https://localhost`.
+- **Redirect URI**: add the redirect(s) you will actually use:
+  - Expo Go: `https://auth.expo.io/@YOUR_EXPO_USERNAME/swifty-companion`
+  - Standalone/dev client: `swifty-companion://redirect`
 - **Scopes**: select **public** data (the minimum needed to read profiles).
 - **Public**: leave **unchecked** unless you want the app to be public.
 
@@ -31,6 +33,7 @@ Keep them private.
    FT_CLIENT_ID=YOUR_42_APP_CLIENT_ID
    FT_CLIENT_SECRET=YOUR_42_APP_CLIENT_SECRET
    API_BASE_URL=https://api.intra.42.fr
+   EXPO_PROXY_REDIRECT=https://auth.expo.io/@YOUR_EXPO_USERNAME/swifty-companion
    ```
 2. Make sure `.env` is **not** committed (it’s already in `.gitignore`).
 

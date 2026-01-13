@@ -19,7 +19,7 @@ const TILES: Array<{
   { title: 'XP Calculator', subtitle: 'Plan your journey.', route: 'Calculator' },
   { title: 'RNCP Planner', subtitle: 'Plan your RNCP path.', route: 'Planner' },
   { title: 'RNCP', subtitle: 'Track RNCP progress.', route: 'Rncp' },
-  { title: 'Bonus', subtitle: 'Token refresh tools.', route: 'Bonus' },
+  { title: 'Quick Access', subtitle: 'Intranet shortcuts and essentials.', route: 'Bonus' },
 ];
 
 export default function HomeScreen({ navigation }: Props) {

@@ -15,7 +15,7 @@ ios:
 	cd $(APP_DIR) && npx expo start --ios
 
 run-android:
-	cd $(APP_DIR) && npx expo run:android
+	cd $(APP_DIR) && npx expo run:android --device
 
 run-ios:
 	cd $(APP_DIR) && npx expo run:ios

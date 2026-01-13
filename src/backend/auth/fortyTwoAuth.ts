@@ -4,10 +4,11 @@ import Constants from 'expo-constants';
 import { scheduleTokenRefresh } from '../bonus/tokenRefresh';
 import { AuthState, clearAuthState, getCachedAuthState, loadAuthState, saveAuthState } from './authStore';
 
-const { apiBaseUrl, clientId, clientSecret } = (Constants.expoConfig?.extra ?? {}) as {
+const { apiBaseUrl, clientId, clientSecret, proxyRedirectUri } = (Constants.expoConfig?.extra ?? {}) as {
   apiBaseUrl?: string;
   clientId?: string;
   clientSecret?: string;
+  proxyRedirectUri?: string;
 };
 
 const API_BASE = apiBaseUrl || 'https://api.intra.42.fr';
@@ -15,8 +16,9 @@ const AUTH_ENDPOINT = `${API_BASE}/oauth/authorize`;
 const TOKEN_ENDPOINT = `${API_BASE}/oauth/token`;
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
-const useProxy = false;
 const REDIRECT_URI = 'swifty-companion://redirect';
+const isExpoGo = Constants.appOwnership === 'expo';
+const useProxy = isExpoGo && Boolean(proxyRedirectUri);
 
 function requireCredentials() {
   if (!clientId || !clientSecret) {
@@ -30,7 +32,14 @@ function isTokenFresh(state: AuthState | null) {
 }
 
 function getRedirectUri() {
-  return REDIRECT_URI;
+  if (useProxy && proxyRedirectUri) {
+    return proxyRedirectUri;
+  }
+  return AuthSession.makeRedirectUri({
+    scheme: 'swifty-companion',
+    path: 'redirect',
+    native: REDIRECT_URI,
+  });
 }
 
 async function exchangeToken(params: Record<string, string>): Promise<AuthState> {

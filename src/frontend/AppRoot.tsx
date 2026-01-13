@@ -187,7 +187,7 @@ function AppNavigator() {
                   <View style={styles.headerTitle}>
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
-                      <Text style={styles.headerText}>Bonus</Text>
+                      <Text style={styles.headerText}>Quick Access</Text>
                     </View>
                   </View>
                 ),
