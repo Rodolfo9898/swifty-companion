@@ -15,7 +15,6 @@ import PlannerScreen from './screens/PlannerScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import RncpScreen from './screens/RncpScreen';
 import SearchScreen from './screens/SearchScreen';
-import StatsScreen from './screens/StatsScreen';
 import type { FortyTwoUser } from './types/fortyTwo';
 import createAppRootStyles from './styles/appRootStyles';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -27,7 +26,6 @@ export type RootStackParamList = {
   Search: { initialLogin?: string; autoSearch?: boolean } | undefined;
   Profile: { login: string; initialProfile?: FortyTwoUser };
   Bonus: undefined;
-  Stats: undefined;
   Leaderboard: undefined;
   Calculator: undefined;
   Planner: undefined;
@@ -130,21 +128,6 @@ function AppNavigator() {
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
                       <Text style={styles.headerText}>Leaderboard</Text>
-                    </View>
-                  </View>
-                ),
-                headerRight: headerActions,
-              }}
-            />
-            <Stack.Screen
-              name="Stats"
-              component={StatsScreen}
-              options={{
-                headerTitle: () => (
-                  <View style={styles.headerTitle}>
-                    <View style={styles.headerTitleRow}>
-                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
-                      <Text style={styles.headerText}>Stats</Text>
                     </View>
                   </View>
                 ),

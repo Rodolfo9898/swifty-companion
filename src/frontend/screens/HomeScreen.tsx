@@ -16,7 +16,6 @@ const TILES: Array<{
 }> = [
   { title: 'Search', subtitle: 'Find any 42 student.', route: 'Search' },
   { title: 'Leaderboard', subtitle: 'Compare yourself with the rest of 42.', route: 'Leaderboard' },
-  { title: 'Stats', subtitle: 'All campus metrics.', route: 'Stats' },
   { title: 'XP Calculator', subtitle: 'Plan your journey.', route: 'Calculator' },
   { title: 'RNCP Planner', subtitle: 'Plan your RNCP path.', route: 'Planner' },
   { title: 'RNCP', subtitle: 'Track RNCP progress.', route: 'Rncp' },
