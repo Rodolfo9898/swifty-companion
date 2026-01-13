@@ -18,6 +18,7 @@ const TILES: Array<{
   { title: 'Leaderboard', subtitle: 'Compare yourself with the rest of 42.', route: 'Leaderboard' },
   { title: 'Stats', subtitle: 'All campus metrics.', route: 'Stats' },
   { title: 'XP Calculator', subtitle: 'Plan your journey.', route: 'Calculator' },
+  { title: 'RNCP Planner', subtitle: 'Plan your RNCP path.', route: 'Planner' },
   { title: 'RNCP', subtitle: 'Track RNCP progress.', route: 'Rncp' },
   { title: 'Bonus', subtitle: 'Token refresh tools.', route: 'Bonus' },
 ];

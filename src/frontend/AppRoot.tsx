@@ -11,6 +11,7 @@ import HomeScreen from './screens/HomeScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import LoadingScreen from './screens/LoadingScreen';
 import LoginScreen from './screens/LoginScreen';
+import PlannerScreen from './screens/PlannerScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import RncpScreen from './screens/RncpScreen';
 import SearchScreen from './screens/SearchScreen';
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   Stats: undefined;
   Leaderboard: undefined;
   Calculator: undefined;
+  Planner: undefined;
   Rncp: undefined;
   DevCache: undefined;
 };
@@ -158,6 +160,21 @@ function AppNavigator() {
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
                       <Text style={styles.headerText}>XP Calculator</Text>
+                    </View>
+                  </View>
+                ),
+                headerRight: headerActions,
+              }}
+            />
+            <Stack.Screen
+              name="Planner"
+              component={PlannerScreen}
+              options={{
+                headerTitle: () => (
+                  <View style={styles.headerTitle}>
+                    <View style={styles.headerTitleRow}>
+                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
+                      <Text style={styles.headerText}>RNCP Planner</Text>
                     </View>
                   </View>
                 ),

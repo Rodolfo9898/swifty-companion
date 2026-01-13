@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '../AuthContext';
@@ -31,19 +31,6 @@ type RoadmapEntry = {
   updatedAt: number;
 };
 
-function normalizeProjects(projects: ProjectEntry[]) {
-  if (!projects.length) {
-    return [{ id: 'project-1', name: '', experience: 0, grade: '100', bonus: false }];
-  }
-  return projects.map((project, index) => ({
-    id: `project-${index + 1}`,
-    name: project.name ?? '',
-    experience: Number(project.experience) || 0,
-    grade: project.grade ?? '100',
-    bonus: Boolean(project.bonus),
-  }));
-}
-
 export default function CalculatorScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createCalculatorStyles(colors), [colors]);
@@ -51,6 +38,27 @@ export default function CalculatorScreen() {
   const catalog = useMemo(() => getProjectCatalog(), []);
 
   const [level] = useState(() => getPrimaryLevel(user?.cursus_users));
+  const nextProjectId = useRef(2);
+  const normalizeProjects = useCallback((projects: ProjectEntry[]) => {
+    if (!projects.length) {
+      return [{ id: 'project-1', name: '', experience: 0, grade: '100', bonus: false }];
+    }
+    const seen = new Set<string>();
+    return projects.map((project) => {
+      let id = project.id && project.id.trim() ? project.id : `project-${nextProjectId.current++}`;
+      if (seen.has(id)) {
+        id = `project-${nextProjectId.current++}`;
+      }
+      seen.add(id);
+      return {
+        id,
+        name: project.name ?? '',
+        experience: Number(project.experience) || 0,
+        grade: project.grade ?? '100',
+        bonus: Boolean(project.bonus),
+      };
+    });
+  }, []);
   const [projects, setProjects] = useState<ProjectEntry[]>([
     { id: 'project-1', name: '', experience: 0, grade: '100', bonus: false },
   ]);
@@ -72,11 +80,21 @@ export default function CalculatorScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    const maxId = projects.reduce((max, project) => {
+      const match = project.id.match(/project-(\d+)/);
+      if (!match) return max;
+      const value = Number(match[1]);
+      return Number.isFinite(value) ? Math.max(max, value) : max;
+    }, 0);
+    nextProjectId.current = Math.max(nextProjectId.current, maxId + 1);
+  }, [projects]);
+
   const addProject = () => {
     setProjects((prev) => [
       ...prev,
       {
-        id: `project-${prev.length + 1}`,
+        id: `project-${nextProjectId.current++}`,
         name: '',
         experience: 0,
         grade: '100',

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
@@ -11,6 +10,13 @@ import {
   fetchUsers,
   fetchUserProfile,
 } from '../../backend/api/fortyTwoApi';
+import {
+  fetchLeaderboardCampuses,
+  fetchLeaderboardPage,
+  fetchLeaderboardPromos,
+  fetchLeaderboardTop,
+  isLeaderboardApiEnabled,
+} from '../../backend/api/leaderboardApi';
 import type { RootStackParamList } from '../AppRoot';
 import createLeaderboardStyles from '../styles/leaderboardStyles';
 import { useAuth } from '../AuthContext';
@@ -30,6 +36,39 @@ const BELGIUM_MATCHERS = ['belgium', 'brussels', 'bruxelles'];
 type Props = NativeStackScreenProps<RootStackParamList, 'Leaderboard'>;
 
 type SortOrder = 'desc' | 'asc';
+type SortField =
+  | 'login'
+  | 'displayname'
+  | 'level'
+  | 'weekly_logtime'
+  | 'correction_points'
+  | 'wallets'
+  | 'campus_name'
+  | 'coalition_name'
+  | 'blackholed_at';
+
+const SORT_FIELDS: Array<{ id: SortField; label: string }> = [
+  { id: 'login', label: 'Login' },
+  { id: 'displayname', label: 'Display name' },
+  { id: 'level', label: 'Level' },
+  { id: 'weekly_logtime', label: 'Weekly logtime' },
+  { id: 'correction_points', label: 'Correction points' },
+  { id: 'wallets', label: 'Wallets' },
+  { id: 'campus_name', label: 'Campus' },
+  { id: 'coalition_name', label: 'Coalition' },
+  { id: 'blackholed_at', label: 'Blackhole' },
+];
+
+const FIELD_LABELS: Array<{ id: SortField; label: string }> = [
+  { id: 'displayname', label: 'Display name' },
+  { id: 'level', label: 'Level' },
+  { id: 'weekly_logtime', label: 'Weekly logtime' },
+  { id: 'correction_points', label: 'Correction points' },
+  { id: 'wallets', label: 'Wallets' },
+  { id: 'campus_name', label: 'Campus' },
+  { id: 'coalition_name', label: 'Coalition' },
+  { id: 'blackholed_at', label: 'Blackhole' },
+];
 
 type CursusEntry = {
   level: number;
@@ -62,8 +101,8 @@ const getCurrentCursus = (user: { cursus_users?: CursusEntry[] }) => {
   const cursusUsers = user.cursus_users ?? [];
   if (!cursusUsers.length) return null;
   const fortyTwoEntries = cursusUsers.filter((entry) => isFortyTwoCursus(entry));
-  const candidates = fortyTwoEntries.length ? fortyTwoEntries : cursusUsers;
-  return candidates.reduce((current, entry) => {
+  if (!fortyTwoEntries.length) return null;
+  return fortyTwoEntries.reduce((current, entry) => {
     if (!current) return entry;
     if (typeof entry.level !== 'number') return current;
     if (typeof current.level !== 'number') return entry;
@@ -73,10 +112,7 @@ const getCurrentCursus = (user: { cursus_users?: CursusEntry[] }) => {
 
 const isEligibleUser = (user: UserSummary) => {
   if (!user.cursus_users || user.cursus_users.length === 0) {
-    if (looksPiscineName(user.displayname) || looksPiscineName(user.login)) {
-      return false;
-    }
-    return true;
+    return false;
   }
   const current = getCurrentCursus(user);
   if (current && isPiscineCursus(current)) return false;
@@ -88,9 +124,6 @@ function getUserLevel(user: UserSummary) {
   const current = getCurrentCursus(user);
   if (current && Number.isFinite(current.level)) {
     return current.level;
-  }
-  if (typeof user.level === 'number') {
-    return user.level;
   }
   return null;
 }
@@ -112,19 +145,46 @@ export default function LeaderboardScreen({ navigation }: Props) {
   const [rankingComplete, setRankingComplete] = useState(false);
   const [rankingLoading, setRankingLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'compare' | 'top10'>('compare');
+  const [showCampusMenu, setShowCampusMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showPromoMenu, setShowPromoMenu] = useState(false);
+  const [showFieldsMenu, setShowFieldsMenu] = useState(false);
+  const [showSortFieldMenu, setShowSortFieldMenu] = useState(false);
+  const [promos, setPromos] = useState<string[]>([]);
+  const [promo, setPromo] = useState<string>('');
+  const [searchText, setSearchText] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [sortField, setSortField] = useState<SortField>('level');
+  const [shownFields, setShownFields] = useState<Record<SortField, boolean>>(() => ({
+    displayname: true,
+    level: true,
+    weekly_logtime: false,
+    correction_points: false,
+    wallets: false,
+    campus_name: true,
+    coalition_name: false,
+    blackholed_at: false,
+    login: false,
+  }));
+  const useBackend = isLeaderboardApiEnabled();
 
   useEffect(() => {
     const loadCampuses = async () => {
       try {
-        const perPage = 100;
-        let pageIndex = 1;
-        const allCampuses: Campus[] = [];
-        while (pageIndex <= 20) {
-          const data = await fetchCampuses(pageIndex, perPage);
-          allCampuses.push(...data);
-          if (data.length < perPage) break;
-          pageIndex += 1;
-        }
+        const allCampuses: Campus[] = useBackend
+          ? await fetchLeaderboardCampuses()
+          : await (async () => {
+            const perPage = 100;
+            let pageIndex = 1;
+            const list: Campus[] = [];
+            while (pageIndex <= 20) {
+              const data = await fetchCampuses(pageIndex, perPage);
+              list.push(...data);
+              if (data.length < perPage) break;
+              pageIndex += 1;
+            }
+            return list;
+          })();
         const sorted = [...allCampuses].sort((a, b) => a.name.localeCompare(b.name));
         const filtered = sorted.filter((campus) =>
           BELGIUM_MATCHERS.some((term) => campus.name.toLowerCase().includes(term)),
@@ -142,9 +202,44 @@ export default function LeaderboardScreen({ navigation }: Props) {
     loadCampuses();
   }, []);
 
-  const loadUsers = async (targetCampusId: number, targetPage: number) => {
+  const loadUsers = async (targetCampusId: number, targetPage: number, meLogin?: string) => {
     setError(null);
     try {
+      if (useBackend) {
+        const response = await fetchLeaderboardPage({
+          campusId: targetCampusId === ALL_CAMPUSES ? undefined : targetCampusId,
+          promo: promo || undefined,
+          search: appliedSearch || undefined,
+          sortField,
+          page: targetPage,
+          perPage: PAGE_SIZE,
+          sort: sortOrder,
+          meLogin,
+        });
+        const mapped = response.data.map((entry) => ({
+          id: entry.id,
+          login: entry.login,
+          displayname: entry.displayname ?? undefined,
+          image: entry.image ? { link: entry.image } : undefined,
+          level: entry.level ?? undefined,
+          title: entry.title ?? undefined,
+          campus: entry.campusName ?? undefined,
+          weekly_logtime: entry.weekly_logtime ?? undefined,
+          correction_points: entry.correction_points ?? undefined,
+          wallets: entry.wallets ?? undefined,
+          blackholed_at: entry.blackholed_at ?? undefined,
+          coalition_name: entry.coalition_name ?? undefined,
+          cursus_users: [
+            {
+              level: entry.level ?? 0,
+              cursus: { id: 21, slug: '42cursus', name: '42cursus' },
+            },
+          ],
+        })) as UserSummary[];
+        setUsers(mapped);
+        setTotal(response.total ?? 0);
+        return;
+      }
       const cacheKey = `${targetCampusId}:${targetPage}`;
       const cache = await readLeaderboardCache<{
         [key: string]: { updatedAt: number; users: UserSummary[]; total: number };
@@ -180,14 +275,20 @@ export default function LeaderboardScreen({ navigation }: Props) {
   const enrichUsers = async (list: UserSummary[]) => {
     const enriched: UserSummary[] = [];
     for (const entry of list) {
-      if (entry.cursus_users?.length || typeof entry.level === 'number') {
+      if (entry.cursus_users?.length) {
         enriched.push(entry);
         continue;
       }
       try {
         const profile = await fetchUserProfile(entry.login);
         const full = profile as UserSummary & { cursus_users?: CursusEntry[] };
+        if (!full.cursus_users?.length) {
+          continue;
+        }
         const level = getUserLevel(full);
+        if (level === null) {
+          continue;
+        }
         enriched.push({
           ...entry,
           image: profile.image ?? entry.image,
@@ -196,7 +297,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           level: typeof level === 'number' ? level : entry.level,
         });
       } catch {
-        enriched.push(entry);
+        // Skip if we cannot load cursus info
       }
     }
     return enriched;
@@ -205,11 +306,20 @@ export default function LeaderboardScreen({ navigation }: Props) {
   useEffect(() => {
     if (appliedCampusId === null) return;
     loadUsers(appliedCampusId, page);
-  }, [appliedCampusId, page]);
+  }, [appliedCampusId, page, appliedSearch, sortField, sortOrder, promo]);
 
   const handleCompare = () => {
     setPage(1);
     setAppliedCampusId(campusId);
+    setAppliedSearch(searchText.trim());
+  };
+
+  const handleJumpToMe = () => {
+    if (!currentUser?.login) return;
+    setPage(1);
+    setAppliedCampusId(campusId);
+    setAppliedSearch(searchText.trim());
+    loadUsers(campusId, 1, currentUser.login);
   };
 
   useEffect(() => {
@@ -219,6 +329,28 @@ export default function LeaderboardScreen({ navigation }: Props) {
 
   useEffect(() => {
     const loadRanking = async () => {
+      if (useBackend) {
+        try {
+          const entries = await fetchLeaderboardTop({
+            campusId: campusId === ALL_CAMPUSES ? undefined : campusId,
+            promo: promo || undefined,
+            limit: 10,
+            excludeLogin: 'latorche',
+          });
+          setRankingEntries(entries.map((entry) => ({
+            login: entry.login,
+            displayname: entry.displayname ?? undefined,
+            image: entry.image ? { link: entry.image } : undefined,
+            level: entry.level ?? null,
+          })));
+          setRankingUpdatedAt(Date.now());
+          setRankingComplete(true);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unable to load top 10.';
+          setError(message);
+        }
+        return;
+      }
       const cache = await readLeaderboardRanking<{
         [key: string]: { updatedAt: number; complete: boolean; entries: RankedEntry[] };
       }>();
@@ -234,10 +366,26 @@ export default function LeaderboardScreen({ navigation }: Props) {
         setRankingComplete(false);
       }
     };
-    if (campusId !== ALL_CAMPUSES) {
+    if (useBackend || campusId !== ALL_CAMPUSES) {
       loadRanking();
     }
-  }, [campusId]);
+  }, [campusId, promo, useBackend]);
+
+  useEffect(() => {
+    if (!useBackend) return;
+    const loadPromos = async () => {
+      try {
+        const list = await fetchLeaderboardPromos({
+          campusId: campusId === ALL_CAMPUSES ? undefined : campusId,
+        });
+        setPromos(list);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to load promos.';
+        setError(message);
+      }
+    };
+    loadPromos();
+  }, [campusId, useBackend]);
 
   const saveRankingCache = async (entries: RankedEntry[], complete: boolean) => {
     const cache = await readLeaderboardRanking<{
@@ -311,7 +459,10 @@ export default function LeaderboardScreen({ navigation }: Props) {
 
   const totalPages = total ? Math.ceil(total / PAGE_SIZE) : undefined;
   const sortedUsers = useMemo(() => {
-    const filteredUsers = users.filter((user) => isEligibleUser(user));
+    const filteredUsers = users.filter((user) => user.cursus_users?.length && isEligibleUser(user));
+    if (useBackend) {
+      return filteredUsers;
+    }
     const direction = sortOrder === 'asc' ? 1 : -1;
     return filteredUsers
       .map((user) => ({ user, level: getUserLevel(user) }))
@@ -322,7 +473,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
         return (a.level - b.level) * direction;
       })
       .map((entry) => entry.user);
-  }, [sortOrder, users]);
+  }, [sortOrder, useBackend, users]);
   const levelLabel = 'Level';
   const currentUserLevel =
     currentUser && getUserLevel(currentUser as UserSummary);
@@ -373,43 +524,80 @@ export default function LeaderboardScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
         <Text style={styles.label}>Campus</Text>
-        <View style={styles.pickerWrap}>
-          <Picker
-            selectedValue={String(campusId)}
-            onValueChange={(value) => {
-              setCampusId(Number(value));
-              setPage(1);
-            }}
-            style={styles.picker}
-            dropdownIconColor={colors.text}
-          >
-            <Picker.Item label="All campuses" value={String(ALL_CAMPUSES)} />
-            {campuses.map((campus) => (
-              <Picker.Item key={campus.id} label={campus.name} value={String(campus.id)} />
-            ))}
-          </Picker>
-        </View>
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={() => setShowCampusMenu(true)}
+        >
+          <Text style={styles.dropdownText} numberOfLines={1}>
+            {campusId === ALL_CAMPUSES
+              ? 'All campuses'
+              : (campuses.find((campus) => campus.id === campusId)?.name ?? 'Select campus')}
+          </Text>
+          <Text style={styles.dropdownIcon}>▾</Text>
+        </TouchableOpacity>
+        {useBackend ? (
+          <>
+            <Text style={styles.label}>Promo</Text>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setShowPromoMenu(true)}
+            >
+              <Text style={styles.dropdownText} numberOfLines={1}>
+                {promo ? promo : 'Any promo'}
+              </Text>
+              <Text style={styles.dropdownIcon}>▾</Text>
+            </TouchableOpacity>
+            <Text style={styles.label}>Search</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search login, display name, title..."
+              placeholderTextColor={colors.textMuted}
+              value={searchText}
+              onChangeText={setSearchText}
+              onSubmitEditing={handleCompare}
+            />
+            <Text style={styles.label}>Sort by</Text>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setShowSortFieldMenu(true)}
+            >
+              <Text style={styles.dropdownText} numberOfLines={1}>
+                {SORT_FIELDS.find((field) => field.id === sortField)?.label ?? 'Level'}
+              </Text>
+              <Text style={styles.dropdownIcon}>▾</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => setShowFieldsMenu(true)}
+            >
+              <Text style={styles.secondaryButtonText}>Show fields…</Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
         {activeTab === 'compare' ? (
           <>
             <View style={styles.filterRow}>
               <View style={styles.filterGroup}>
                 <Text style={styles.label}>Order</Text>
-                <View style={styles.pickerWrap}>
-                  <Picker
-                    selectedValue={sortOrder}
-                    onValueChange={(value) => setSortOrder(value as SortOrder)}
-                    style={styles.picker}
-                    dropdownIconColor={colors.text}
-                  >
-                    <Picker.Item label="Descending" value="desc" />
-                    <Picker.Item label="Ascending" value="asc" />
-                  </Picker>
-                </View>
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setShowSortMenu(true)}
+                >
+                  <Text style={styles.dropdownText} numberOfLines={1}>
+                    {sortOrder === 'desc' ? 'Descending' : 'Ascending'}
+                  </Text>
+                  <Text style={styles.dropdownIcon}>▾</Text>
+                </TouchableOpacity>
               </View>
             </View>
             <TouchableOpacity style={styles.compareButton} onPress={handleCompare}>
               <Text style={styles.compareButtonText}>Compare</Text>
             </TouchableOpacity>
+            {useBackend && currentUser?.login ? (
+              <TouchableOpacity style={styles.secondaryButton} onPress={handleJumpToMe}>
+                <Text style={styles.secondaryButtonText}>Jump to me</Text>
+              </TouchableOpacity>
+            ) : null}
             {totalPages ? (
               <Text style={styles.hint}>Page {page} of {totalPages}</Text>
             ) : (
@@ -424,20 +612,22 @@ export default function LeaderboardScreen({ navigation }: Props) {
                 {rankingComplete ? 'Ranking complete' : 'Ranking not complete'}
               </Text>
             </View>
-            <View style={styles.rankingActions}>
-              <TouchableOpacity
-                style={[styles.compareButton, rankingLoading && styles.buttonDisabled]}
-                onPress={buildRanking}
-                disabled={rankingLoading}
-              >
-                <Text style={styles.compareButtonText}>
-                  {rankingLoading ? 'Building...' : 'Build ranking'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resetButton} onPress={resetRanking}>
-                <Text style={styles.resetButtonText}>Reset cache</Text>
-              </TouchableOpacity>
-            </View>
+            {!useBackend ? (
+              <View style={styles.rankingActions}>
+                <TouchableOpacity
+                  style={[styles.compareButton, rankingLoading && styles.buttonDisabled]}
+                  onPress={buildRanking}
+                  disabled={rankingLoading}
+                >
+                  <Text style={styles.compareButtonText}>
+                    {rankingLoading ? 'Building...' : 'Build ranking'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.resetButton} onPress={resetRanking}>
+                  <Text style={styles.resetButtonText}>Reset cache</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </>
         )}
       </View>
@@ -460,7 +650,37 @@ export default function LeaderboardScreen({ navigation }: Props) {
             )}
             <View>
               <Text style={styles.login}>{user.login}</Text>
-              <Text style={styles.display}>{user.displayname ?? 'Unknown'}</Text>
+              {shownFields.displayname ? (
+                <Text style={styles.display}>{user.displayname ?? 'Unknown'}</Text>
+              ) : null}
+              {shownFields.campus_name && (user as UserSummary & { campus?: string }).campus ? (
+                <Text style={styles.display}>{(user as UserSummary & { campus?: string }).campus}</Text>
+              ) : null}
+              {shownFields.correction_points && (user as UserSummary & { correction_points?: number }).correction_points !== undefined ? (
+                <Text style={styles.display}>
+                  Correction points: {(user as UserSummary & { correction_points?: number }).correction_points}
+                </Text>
+              ) : null}
+              {shownFields.wallets && (user as UserSummary & { wallets?: number }).wallets !== undefined ? (
+                <Text style={styles.display}>
+                  Wallets: {(user as UserSummary & { wallets?: number }).wallets}
+                </Text>
+              ) : null}
+              {shownFields.weekly_logtime && (user as UserSummary & { weekly_logtime?: number }).weekly_logtime !== undefined ? (
+                <Text style={styles.display}>
+                  Weekly logtime: {(user as UserSummary & { weekly_logtime?: number }).weekly_logtime} min
+                </Text>
+              ) : null}
+              {shownFields.coalition_name && (user as UserSummary & { coalition_name?: string }).coalition_name ? (
+                <Text style={styles.display}>
+                  Coalition: {(user as UserSummary & { coalition_name?: string }).coalition_name}
+                </Text>
+              ) : null}
+              {shownFields.blackholed_at && (user as UserSummary & { blackholed_at?: string }).blackholed_at ? (
+                <Text style={styles.display}>
+                  Blackhole: {(user as UserSummary & { blackholed_at?: string }).blackholed_at}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.levelBlock}>
               <Text style={styles.levelLabel}>{levelLabel}</Text>
@@ -471,7 +691,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
       }) : rankingEntries.slice(0, 10).map((entry, index) => {
         const avatar = entry.image?.link;
         return (
-          <View key={`${entry.login}-${index}`} style={styles.card}>
+          <TouchableOpacity
+            key={`${entry.login}-${index}`}
+            style={styles.card}
+            onPress={() => navigation.navigate('Search', { initialLogin: entry.login })}
+          >
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatar} />
             ) : (
@@ -479,7 +703,9 @@ export default function LeaderboardScreen({ navigation }: Props) {
             )}
             <View>
               <Text style={styles.login}>{entry.login}</Text>
-              <Text style={styles.display}>{entry.displayname ?? 'Unknown'}</Text>
+              {shownFields.displayname ? (
+                <Text style={styles.display}>{entry.displayname ?? 'Unknown'}</Text>
+              ) : null}
             </View>
             <View style={styles.levelBlock}>
               <Text style={styles.levelLabel}>Level</Text>
@@ -487,7 +713,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
                 {typeof entry.level === 'number' ? entry.level.toFixed(2) : '--'}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         );
       })}
 
@@ -511,6 +737,196 @@ export default function LeaderboardScreen({ navigation }: Props) {
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Modal transparent visible={showCampusMenu} animationType="fade">
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowCampusMenu(false)}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Choose campus</Text>
+            <ScrollView style={styles.modalList}>
+              <TouchableOpacity
+                style={[
+                  styles.modalItem,
+                  campusId === ALL_CAMPUSES && styles.modalItemActive,
+                ]}
+                onPress={() => {
+                  setCampusId(ALL_CAMPUSES);
+                  setPage(1);
+                  setShowCampusMenu(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalItemText,
+                    campusId === ALL_CAMPUSES && styles.modalItemTextActive,
+                  ]}
+                >
+                  All campuses
+                </Text>
+              </TouchableOpacity>
+              {campuses.map((campus) => {
+                const isActive = campus.id === campusId;
+                return (
+                  <TouchableOpacity
+                    key={campus.id}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setCampusId(campus.id);
+                      setPage(1);
+                      setShowCampusMenu(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {campus.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal transparent visible={showSortMenu} animationType="fade">
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Sort order</Text>
+            <View>
+              {([
+                { label: 'Descending', value: 'desc' as SortOrder },
+                { label: 'Ascending', value: 'asc' as SortOrder },
+              ]).map((option) => {
+                const isActive = option.value === sortOrder;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setSortOrder(option.value);
+                      setShowSortMenu(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal transparent visible={showPromoMenu} animationType="fade">
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowPromoMenu(false)}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Choose promo</Text>
+            <ScrollView style={styles.modalList}>
+              <TouchableOpacity
+                style={[styles.modalItem, promo === '' && styles.modalItemActive]}
+                onPress={() => {
+                  setPromo('');
+                  setShowPromoMenu(false);
+                }}
+              >
+                <Text style={[styles.modalItemText, promo === '' && styles.modalItemTextActive]}>
+                  Any promo
+                </Text>
+              </TouchableOpacity>
+              {promos.map((value) => {
+                const isActive = value === promo;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setPromo(value);
+                      setShowPromoMenu(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {value}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal transparent visible={showSortFieldMenu} animationType="fade">
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowSortFieldMenu(false)}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Sort by</Text>
+            <ScrollView style={styles.modalList}>
+              {SORT_FIELDS.map((field) => {
+                const isActive = field.id === sortField;
+                return (
+                  <TouchableOpacity
+                    key={field.id}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setSortField(field.id);
+                      setShowSortFieldMenu(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {field.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal transparent visible={showFieldsMenu} animationType="fade">
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowFieldsMenu(false)}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Fields to show</Text>
+            <ScrollView style={styles.modalList}>
+              {FIELD_LABELS.map((field) => {
+                const isActive = shownFields[field.id];
+                return (
+                  <TouchableOpacity
+                    key={field.id}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setShownFields((prev) => ({ ...prev, [field.id]: !prev[field.id] }));
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {field.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.compareButton}
+              onPress={() => setShowFieldsMenu(false)}
+            >
+              <Text style={styles.compareButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }

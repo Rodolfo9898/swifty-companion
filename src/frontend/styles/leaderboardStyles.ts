@@ -24,12 +24,68 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       fontSize: 12,
       marginBottom: spacing.xs,
     },
-    pickerWrap: {
-      borderRadius: 12,
+    dropdownButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+      paddingHorizontal: 12,
+      height: 40,
+    },
+    dropdownText: {
+      color: colors.text,
+      fontSize: 12,
+      flex: 1,
+      marginRight: 8,
+    },
+    dropdownIcon: {
+      color: colors.textMuted,
+      fontSize: 12,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      padding: spacing.lg,
+    },
+    modalCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      maxHeight: '70%',
+    },
+    modalTitle: {
+      color: colors.text,
+      fontWeight: '700',
+      marginBottom: spacing.md,
+      fontSize: 16,
+    },
+    modalList: {
+      maxHeight: '100%',
+    },
+    modalItem: {
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      marginBottom: 8,
       backgroundColor: colors.surfaceAlt,
     },
-    picker: {
+    modalItemActive: {
+      backgroundColor: colors.accent,
+    },
+    modalItemText: {
       color: colors.text,
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    modalItemTextActive: {
+      color: colors.accentText,
+      fontWeight: '600',
     },
     tabRow: {
       flexDirection: 'row',
@@ -64,6 +120,16 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     filterGroup: {
       flex: 1,
     },
+    searchInput: {
+      borderRadius: 12,
+      backgroundColor: colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
     compareButton: {
       marginTop: spacing.md,
       backgroundColor: colors.accent,
@@ -74,6 +140,19 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     compareButtonText: {
       color: colors.accentText,
       fontWeight: '700',
+    },
+    secondaryButton: {
+      marginTop: spacing.sm,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    secondaryButtonText: {
+      color: colors.text,
+      fontWeight: '600',
     },
     rankingMeta: {
       marginTop: spacing.sm,

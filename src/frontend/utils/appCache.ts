@@ -5,6 +5,7 @@ const EVENT_CACHE = `${CACHE_DIR}events.json`;
 const GROUP_CACHE = `${CACHE_DIR}group-projects.json`;
 const META_CACHE = `${CACHE_DIR}meta.json`;
 const CALCULATOR_CACHE = `${CACHE_DIR}calculator-roadmaps.json`;
+const PLANNER_CACHE = `${CACHE_DIR}planner.json`;
 const LEADERBOARD_CACHE = `${CACHE_DIR}leaderboard.json`;
 const LEADERBOARD_RANKING_CACHE = `${CACHE_DIR}leaderboard-ranking.json`;
 
@@ -93,6 +94,22 @@ export async function writeCalculatorRoadmaps(data: unknown) {
   await FileSystem.writeAsStringAsync(CALCULATOR_CACHE, JSON.stringify(data));
 }
 
+export async function readPlannerCache<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(PLANNER_CACHE);
+    if (!info.exists) return null;
+    const content = await FileSystem.readAsStringAsync(PLANNER_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function writePlannerCache(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(PLANNER_CACHE, JSON.stringify(data));
+}
+
 export async function readLeaderboardCache<T>() {
   try {
     const info = await FileSystem.getInfoAsync(LEADERBOARD_CACHE);
@@ -131,6 +148,7 @@ export function getCachePaths() {
     events: EVENT_CACHE,
     group: GROUP_CACHE,
     calculator: CALCULATOR_CACHE,
+    planner: PLANNER_CACHE,
     leaderboard: LEADERBOARD_CACHE,
     leaderboardRanking: LEADERBOARD_RANKING_CACHE,
     meta: META_CACHE,
