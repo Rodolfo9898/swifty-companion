@@ -110,6 +110,13 @@ const getCurrentCursus = (user: { cursus_users?: CursusEntry[] }) => {
   }, null as CursusEntry | null);
 };
 
+const getPrimaryCampusId = (user?: UserSummary | null) => {
+  const campusUsers = user?.campus_users ?? [];
+  if (!campusUsers.length) return null;
+  const primary = campusUsers.find((entry) => entry.is_primary);
+  return (primary?.campus?.id ?? campusUsers[0]?.campus?.id) ?? null;
+};
+
 const isEligibleUser = (user: UserSummary) => {
   if (!user.cursus_users || user.cursus_users.length === 0) {
     return false;
@@ -191,21 +198,14 @@ export default function LeaderboardScreen({ navigation }: Props) {
             return list;
           })();
         const sorted = [...allCampuses].sort((a, b) => a.name.localeCompare(b.name));
-        const filtered = sorted.filter((campus) =>
-          BELGIUM_MATCHERS.some((term) => campus.name.toLowerCase().includes(term)),
-        );
-        const available = filtered.length ? filtered : sorted;
-        setCampuses(available);
-        if (available.length && campusId === ALL_CAMPUSES) {
-          setCampusId(available[0].id);
-        }
+        setCampuses(sorted);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unable to load campuses.';
         setError(message);
       }
     };
     loadCampuses();
-  }, []);
+  }, [currentUser, useBackend, campusId]);
 
   const loadUsers = async (
     targetCampusId: number,
@@ -381,7 +381,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
         try {
           const entries = await fetchLeaderboardTop({
             campusId: campusId === ALL_CAMPUSES ? undefined : campusId,
-            promo: promo || undefined,
             limit: 10,
             excludeLogin: 'latorche',
           });
@@ -423,7 +422,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     if (useBackend || campusId !== ALL_CAMPUSES) {
       loadRanking();
     }
-  }, [campusId, promo, useBackend]);
+  }, [campusId, useBackend]);
 
   useEffect(() => {
     if (!useBackend) return;
@@ -616,72 +615,87 @@ export default function LeaderboardScreen({ navigation }: Props) {
                   <Text style={styles.dropdownIcon}>▾</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.inlineGroup}>
-                <Text style={styles.label}>Promo</Text>
-                <TouchableOpacity
-                  style={[styles.dropdownButton, styles.dropdownButtonCompact]}
-                  onPress={() => setShowPromoMenu(true)}
-                >
-                  <Text style={styles.dropdownText} numberOfLines={1}>
-                    {promo ? promo : 'Any promo'}
-                  </Text>
-                  <Text style={styles.dropdownIcon}>▾</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <Text style={styles.label}>Search</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search login, display name, title..."
-              placeholderTextColor={colors.textMuted}
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            <View style={styles.inlineRow}>
-              <View style={styles.inlineGroup}>
-                <Text style={styles.label}>Sort by</Text>
-                <TouchableOpacity
-                  style={[styles.dropdownButton, styles.dropdownButtonCompact]}
-                  onPress={() => setShowSortFieldMenu(true)}
-                >
-                  <Text style={styles.dropdownText} numberOfLines={1}>
-                    {SORT_FIELDS.find((field) => field.id === sortField)?.label ?? 'Level'}
-                  </Text>
-                  <Text style={styles.dropdownIcon}>▾</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.inlineGroup}>
-                <Text style={styles.label}>Order</Text>
-                <TouchableOpacity
-                  style={[styles.dropdownButton, styles.dropdownButtonCompact]}
-                  onPress={() => setShowSortMenu(true)}
-                >
-                  <Text style={styles.dropdownText} numberOfLines={1}>
-                    {sortOrder === 'desc' ? 'Descending' : 'Ascending'}
-                  </Text>
-                  <Text style={styles.dropdownIcon}>▾</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.inlineRow}>
-              {useBackend && currentUser?.login ? (
-                <TouchableOpacity
-                  style={[styles.secondaryButton, styles.inlineButton, isJumping && styles.buttonDisabled]}
-                  onPress={handleJumpToMe}
-                  disabled={isJumping}
-                >
-                  <Text style={styles.secondaryButtonText}>
-                    {isJumping ? 'Searching...' : 'Jump to me'}
-                  </Text>
-                </TouchableOpacity>
+              {activeTab === 'compare' ? (
+                <View style={styles.inlineGroup}>
+                  <Text style={styles.label}>Promo</Text>
+                  <TouchableOpacity
+                    style={[styles.dropdownButton, styles.dropdownButtonCompact]}
+                    onPress={() => setShowPromoMenu(true)}
+                  >
+                    <Text style={styles.dropdownText} numberOfLines={1}>
+                      {promo ? promo : 'Any promo'}
+                    </Text>
+                    <Text style={styles.dropdownIcon}>▾</Text>
+                  </TouchableOpacity>
+                </View>
               ) : null}
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.inlineButton]}
-                onPress={() => setShowFieldsMenu(true)}
-              >
-                <Text style={styles.secondaryButtonText}>Show fields…</Text>
-              </TouchableOpacity>
             </View>
+            {activeTab === 'compare' ? (
+              <>
+                <Text style={styles.label}>Search</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search login, display name, title..."
+                  placeholderTextColor={colors.textMuted}
+                  value={searchText}
+                  onChangeText={setSearchText}
+                />
+                <View style={styles.inlineRow}>
+                  <View style={styles.inlineGroup}>
+                    <Text style={styles.label}>Sort by</Text>
+                    <TouchableOpacity
+                      style={[styles.dropdownButton, styles.dropdownButtonCompact]}
+                      onPress={() => setShowSortFieldMenu(true)}
+                    >
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        {SORT_FIELDS.find((field) => field.id === sortField)?.label ?? 'Level'}
+                      </Text>
+                      <Text style={styles.dropdownIcon}>▾</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.inlineGroup}>
+                    <Text style={styles.label}>Order</Text>
+                    <TouchableOpacity
+                      style={[styles.dropdownButton, styles.dropdownButtonCompact]}
+                      onPress={() => setShowSortMenu(true)}
+                    >
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        {sortOrder === 'desc' ? 'Descending' : 'Ascending'}
+                      </Text>
+                      <Text style={styles.dropdownIcon}>▾</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.inlineRow}>
+                  {useBackend && currentUser?.login ? (
+                    <TouchableOpacity
+                      style={[styles.secondaryButton, styles.inlineButton, isJumping && styles.buttonDisabled]}
+                      onPress={handleJumpToMe}
+                      disabled={isJumping}
+                    >
+                      <Text style={styles.secondaryButtonText}>
+                        {isJumping ? 'Searching...' : 'Jump to me'}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, styles.inlineButton]}
+                    onPress={() => setShowFieldsMenu(true)}
+                  >
+                    <Text style={styles.secondaryButtonText}>Show fields…</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View style={styles.inlineRow}>
+                <TouchableOpacity
+                  style={[styles.secondaryButton, styles.inlineButton]}
+                  onPress={() => setShowFieldsMenu(true)}
+                >
+                  <Text style={styles.secondaryButtonText}>Show fields…</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </>
         ) : (
           <>
