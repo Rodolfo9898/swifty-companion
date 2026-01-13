@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -51,23 +51,17 @@ const SORT_FIELDS: Array<{ id: SortField; label: string }> = [
   { id: 'login', label: 'Login' },
   { id: 'displayname', label: 'Display name' },
   { id: 'level', label: 'Level' },
-  { id: 'weekly_logtime', label: 'Weekly logtime' },
   { id: 'correction_points', label: 'Correction points' },
   { id: 'wallets', label: 'Wallets' },
   { id: 'campus_name', label: 'Campus' },
-  { id: 'coalition_name', label: 'Coalition' },
-  { id: 'blackholed_at', label: 'Blackhole' },
 ];
 
 const FIELD_LABELS: Array<{ id: SortField; label: string }> = [
   { id: 'displayname', label: 'Display name' },
   { id: 'level', label: 'Level' },
-  { id: 'weekly_logtime', label: 'Weekly logtime' },
   { id: 'correction_points', label: 'Correction points' },
   { id: 'wallets', label: 'Wallets' },
   { id: 'campus_name', label: 'Campus' },
-  { id: 'coalition_name', label: 'Coalition' },
-  { id: 'blackholed_at', label: 'Blackhole' },
 ];
 
 type CursusEntry = {
@@ -156,11 +150,13 @@ export default function LeaderboardScreen({ navigation }: Props) {
   const [showPromoMenu, setShowPromoMenu] = useState(false);
   const [showFieldsMenu, setShowFieldsMenu] = useState(false);
   const [showSortFieldMenu, setShowSortFieldMenu] = useState(false);
+  const [showPageMenu, setShowPageMenu] = useState(false);
   const [promos, setPromos] = useState<string[]>([]);
   const [promo, setPromo] = useState<string>('');
   const [searchText, setSearchText] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [highlightLogin, setHighlightLogin] = useState<string | null>(null);
+  const [isJumping, setIsJumping] = useState(false);
   const [sortField, setSortField] = useState<SortField>('level');
   const [shownFields, setShownFields] = useState<Record<SortField, boolean>>(() => ({
     displayname: true,
@@ -174,6 +170,8 @@ export default function LeaderboardScreen({ navigation }: Props) {
     login: false,
   }));
   const useBackend = isLeaderboardApiEnabled();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const highlightYRef = useRef<number | null>(null);
 
   useEffect(() => {
     const loadCampuses = async () => {
@@ -214,7 +212,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     targetPage: number,
     meLogin?: string,
     searchOverride?: string,
-  ) => {
+  ): Promise<{ users: UserSummary[]; total: number; page: number } | null> => {
     setError(null);
     try {
       if (useBackend) {
@@ -250,8 +248,9 @@ export default function LeaderboardScreen({ navigation }: Props) {
           ],
         })) as UserSummary[];
         setUsers(mapped);
-        setTotal(response.total ?? 0);
-        return;
+        const totalCount = response.total ?? 0;
+        setTotal(totalCount);
+        return { users: mapped, total: totalCount, page: response.page ?? targetPage };
       }
       const cacheKey = `${targetCampusId}:${targetPage}`;
       const cache = await readLeaderboardCache<{
@@ -261,7 +260,8 @@ export default function LeaderboardScreen({ navigation }: Props) {
       if (cachedEntry && Date.now() - cachedEntry.updatedAt < DAY_MS) {
         setUsers(cachedEntry.users);
         setTotal(cachedEntry.total);
-        return;
+        setPage(targetPage);
+        return { users: cachedEntry.users, total: cachedEntry.total, page: targetPage };
       }
       const request = targetCampusId === ALL_CAMPUSES
         ? fetchUsers(targetPage, PAGE_SIZE)
@@ -270,6 +270,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
       const enriched = await enrichUsers(result.data);
       setUsers(enriched);
       setTotal(result.total ?? 0);
+      setPage(targetPage);
       const nextCache = {
         ...cache,
         [cacheKey]: {
@@ -279,9 +280,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
         },
       };
       await writeLeaderboardCache(nextCache);
+      return { users: enriched, total: result.total ?? 0, page: targetPage };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to load users.';
       setError(message);
+      return null;
     }
   };
 
@@ -317,17 +320,38 @@ export default function LeaderboardScreen({ navigation }: Props) {
   };
 
   useEffect(() => {
-    if (appliedCampusId === null) return;
+    if (appliedCampusId === null || isJumping) return;
     loadUsers(appliedCampusId, page);
-  }, [appliedCampusId, page, appliedSearch, sortField, sortOrder, promo]);
+  }, [appliedCampusId, page, appliedSearch, sortField, sortOrder, promo, isJumping]);
 
-  const handleJumpToMe = () => {
-    if (!currentUser?.login) return;
+  const handleJumpToMe = async () => {
+    if (!currentUser?.login || isJumping) return;
+    if (users.some((user) => user.login === currentUser.login)) {
+      setHighlightLogin(currentUser.login);
+      return;
+    }
+    setIsJumping(true);
     setPage(1);
+    setActiveTab('compare');
+    setSearchText('');
     setAppliedCampusId(campusId);
     setAppliedSearch('');
     setHighlightLogin(currentUser.login);
-    loadUsers(campusId, 1, currentUser.login, '');
+    try {
+      const first = await loadUsers(campusId, 1, currentUser.login, '');
+      const hasUser = first?.users.some((user) => user.login === currentUser.login);
+      if (hasUser) return;
+      const maxPages = first?.total ? Math.max(1, Math.ceil(first.total / PAGE_SIZE)) : 200;
+      for (let pageIndex = 2; pageIndex <= maxPages; pageIndex += 1) {
+        const pageResult = await loadUsers(campusId, pageIndex, undefined, '');
+        if (pageResult?.users.some((user) => user.login === currentUser.login)) {
+          return;
+        }
+      }
+      setError('Unable to find your ranking.');
+    } finally {
+      setIsJumping(false);
+    }
   };
 
   useEffect(() => {
@@ -341,6 +365,15 @@ export default function LeaderboardScreen({ navigation }: Props) {
     setAppliedSearch(searchText.trim());
     setHighlightLogin(null);
   }, [campusId, searchText, promo, sortField, sortOrder]);
+
+  useEffect(() => {
+    if (!highlightLogin) return;
+    const y = highlightYRef.current;
+    if (y === null || !scrollRef.current) return;
+    scrollRef.current.scrollTo({ y: Math.max(0, y - 16), animated: true });
+  }, [highlightLogin, users]);
+
+  const pageLabel = totalPages ? `Page ${page} / ${totalPages}` : `Page ${page}`;
 
   useEffect(() => {
     const loadRanking = async () => {
@@ -520,6 +553,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -631,8 +665,14 @@ export default function LeaderboardScreen({ navigation }: Props) {
             </View>
             <View style={styles.inlineRow}>
               {useBackend && currentUser?.login ? (
-                <TouchableOpacity style={[styles.secondaryButton, styles.inlineButton]} onPress={handleJumpToMe}>
-                  <Text style={styles.secondaryButtonText}>Jump to me</Text>
+                <TouchableOpacity
+                  style={[styles.secondaryButton, styles.inlineButton, isJumping && styles.buttonDisabled]}
+                  onPress={handleJumpToMe}
+                  disabled={isJumping}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    {isJumping ? 'Searching...' : 'Jump to me'}
+                  </Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity
@@ -660,13 +700,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           </>
         )}
         {activeTab === 'compare' ? (
-          <>
-            {totalPages ? (
-              <Text style={styles.hint}>Page {page} of {totalPages}</Text>
-            ) : (
-              <Text style={styles.hint}>Page {page}</Text>
-            )}
-          </>
+          <></>
         ) : (
           <>
             <View style={styles.rankingMeta}>
@@ -704,6 +738,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
               index === 0 && styles.firstCard,
               highlightLogin === user.login && styles.cardHighlighted,
             ]}
+            onLayout={(event) => {
+              if (highlightLogin === user.login) {
+                highlightYRef.current = event.nativeEvent.layout.y;
+              }
+            }}
             onPress={() =>
               navigation.navigate('Search', { initialLogin: user.login })
             }
@@ -765,6 +804,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
               index === 0 && styles.firstCard,
               highlightLogin === entry.login && styles.cardHighlighted,
             ]}
+            onLayout={(event) => {
+              if (highlightLogin === entry.login) {
+                highlightYRef.current = event.nativeEvent.layout.y;
+              }
+            }}
             onPress={() => navigation.navigate('Search', { initialLogin: entry.login })}
           >
             <Text style={styles.rank}>{rank}</Text>
@@ -818,22 +862,53 @@ export default function LeaderboardScreen({ navigation }: Props) {
       })}
 
       {activeTab === 'compare' ? (
-        <View style={styles.pagination}>
-          <TouchableOpacity
-            style={[styles.button, page <= 1 && styles.buttonDisabled]}
-            onPress={() => setPage((prev) => Math.max(prev - 1, 1))}
-            disabled={page <= 1}
-          >
-            <Text style={styles.buttonText}>Previous</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, totalPages && page >= totalPages && styles.buttonDisabled]}
-            onPress={() => setPage((prev) => prev + 1)}
-            disabled={totalPages ? page >= totalPages : false}
-          >
-            <Text style={styles.buttonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          <View style={styles.pagination}>
+            <TouchableOpacity
+              style={[styles.button, styles.buttonSmall, page <= 1 && styles.buttonDisabled]}
+              onPress={() => setPage(1)}
+              disabled={page <= 1}
+            >
+              <Text style={styles.buttonText}>First</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.buttonSmall, page <= 1 && styles.buttonDisabled]}
+              onPress={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page <= 1}
+            >
+              <Text style={styles.buttonText}>Prev</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.buttonSmall]}
+              onPress={() => totalPages && setShowPageMenu(true)}
+              disabled={!totalPages}
+            >
+              <Text style={styles.buttonText}>{pageLabel}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.buttonSmall,
+                totalPages && page >= totalPages && styles.buttonDisabled,
+              ]}
+              onPress={() => setPage((prev) => prev + 1)}
+              disabled={totalPages ? page >= totalPages : false}
+            >
+              <Text style={styles.buttonText}>Next</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.buttonSmall,
+                totalPages && page >= totalPages && styles.buttonDisabled,
+              ]}
+              onPress={() => totalPages && setPage(totalPages)}
+              disabled={!totalPages || page >= totalPages}
+            >
+              <Text style={styles.buttonText}>Last</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -1009,6 +1084,35 @@ export default function LeaderboardScreen({ navigation }: Props) {
             >
               <Text style={styles.compareButtonText}>Done</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal transparent visible={showPageMenu} animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowPageMenu(false)} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Go to page</Text>
+            <ScrollView style={styles.modalList}>
+              {totalPages
+                ? Array.from({ length: totalPages }, (_, idx) => idx + 1).map((value) => {
+                    const isActive = value === page;
+                    return (
+                      <TouchableOpacity
+                        key={value}
+                        style={[styles.modalItem, isActive && styles.modalItemActive]}
+                        onPress={() => {
+                          setPage(value);
+                          setShowPageMenu(false);
+                        }}
+                      >
+                        <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                          Page {value}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                : null}
+            </ScrollView>
           </View>
         </View>
       </Modal>

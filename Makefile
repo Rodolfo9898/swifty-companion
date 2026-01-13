@@ -18,8 +18,6 @@ run-android:
 	cd $(APP_DIR) && npx expo run:android
 
 run-ios:
-	cd $(APP_DIR)/leaderboard-server && npm install && npm run sync
-	cd $(APP_DIR)/leaderboard-server && (npm run start >/tmp/swifty-leaderboard.log 2>&1 &)
 	cd $(APP_DIR) && npx expo run:ios
 
 web:

@@ -214,7 +214,7 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       color: colors.textMuted,
       fontSize: 12,
       fontWeight: '700',
-      width: 24,
+      width: 46,
       textAlign: 'right',
     },
     avatar: {
@@ -275,6 +275,10 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       borderRadius: 12,
       paddingVertical: 10,
       alignItems: 'center',
+    },
+    buttonSmall: {
+      flex: 0,
+      paddingHorizontal: 10,
     },
     buttonText: {
       color: colors.accentText,
