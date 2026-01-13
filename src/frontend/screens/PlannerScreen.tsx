@@ -525,17 +525,29 @@ export default function PlannerScreen() {
               return (
                 <View
                   key={project.id}
-                  style={[styles.projectRow, planned && styles.projectRowPlanned]}
+                  style={[
+                    styles.projectRow,
+                    completed && styles.projectRowCompleted,
+                    !completed && planned && styles.projectRowPlanned,
+                  ]}
                 >
                   <TouchableOpacity
                     style={styles.projectMain}
                     onPress={() => handleProjectPress(project, planned, completed)}
                     disabled={Boolean(completed)}
                   >
-                    <Text style={[styles.projectName, planned && styles.projectNamePlanned]}>
+                    <Text style={[
+                      styles.projectName,
+                      planned && styles.projectNamePlanned,
+                      completed && styles.projectNamePlanned,
+                    ]}>
                       {project.name}
                     </Text>
-                    <Text style={[styles.projectMeta, planned && styles.projectMetaPlanned]}>
+                    <Text style={[
+                      styles.projectMeta,
+                      planned && styles.projectMetaPlanned,
+                      completed && styles.projectMetaPlanned,
+                    ]}>
                       {completed
                         ? `Completed • XP ${Math.round((project.xp * completed.finalMark) / 100)}`
                         : planned

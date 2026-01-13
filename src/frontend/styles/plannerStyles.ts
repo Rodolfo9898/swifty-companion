@@ -143,6 +143,11 @@ export default function createPlannerStyles(colors: ThemeColors) {
       borderRadius: 12,
       paddingHorizontal: spacing.sm,
     },
+    projectRowCompleted: {
+      backgroundColor: '#22c55e',
+      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+    },
     projectMain: {
       gap: spacing.xs,
     },

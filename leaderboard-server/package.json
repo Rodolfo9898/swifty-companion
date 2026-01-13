@@ -5,11 +5,16 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "sync": "node sync.js"
+    "sync": "node sync.js",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
     "dotenv": "^17.2.3",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "expo": "~54.0.30",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

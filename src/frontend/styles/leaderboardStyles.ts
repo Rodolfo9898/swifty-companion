@@ -10,7 +10,7 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     },
     content: {
       padding: spacing.xl,
-      gap: spacing.lg,
+      gap: 1,
     },
     selectorCard: {
       backgroundColor: colors.surface,
@@ -22,7 +22,7 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     label: {
       color: colors.textSubtle,
       fontSize: 12,
-      marginBottom: spacing.xs,
+      marginBottom: 0,
     },
     dropdownButton: {
       flexDirection: 'row',
@@ -34,6 +34,10 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceAlt,
       paddingHorizontal: 12,
       height: 40,
+    },
+    dropdownButtonCompact: {
+      height: 34,
+      paddingHorizontal: 10,
     },
     dropdownText: {
       color: colors.text,
@@ -50,6 +54,7 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       backgroundColor: 'rgba(0, 0, 0, 0.6)',
       justifyContent: 'center',
       padding: spacing.lg,
+      position: 'relative',
     },
     modalCard: {
       backgroundColor: colors.surface,
@@ -91,6 +96,18 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       flexDirection: 'row',
       gap: spacing.sm,
       marginBottom: spacing.sm,
+    },
+    inlineRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      alignItems: 'flex-start',
+    },
+    inlineGroup: {
+      flex: 1,
+    },
+    inlineButton: {
+      flex: 1,
+      marginTop: spacing.sm,
     },
     tab: {
       flex: 1,
@@ -177,18 +194,32 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
-      paddingVertical: spacing.sm,
+      paddingVertical: 4,
       paddingHorizontal: spacing.md,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: spacing.md,
+      marginBottom: spacing.xs,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
     },
+    cardHighlighted: {
+      borderColor: colors.accent,
+      backgroundColor: colors.surfaceAlt,
+    },
+    firstCard: {
+      marginTop: spacing.sm,
+    },
+    rank: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+      width: 24,
+      textAlign: 'right',
+    },
     avatar: {
-      width: 34,
-      height: 34,
+      width: 32,
+      height: 32,
       borderRadius: 10,
       backgroundColor: colors.surfaceAlt,
     },

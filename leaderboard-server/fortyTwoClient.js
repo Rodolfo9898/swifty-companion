@@ -80,7 +80,12 @@ export async function fetchCampuses(page = 1, perPage = 100) {
 }
 
 export async function fetchCampusUsers(campusId, page = 1, perPage = 100) {
-  const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+    'filter[kind]': 'student',
+    'filter[staff?]': 'false',
+  });
   return fetchJson(`/v2/campus/${campusId}/users?${params.toString()}`);
 }
 

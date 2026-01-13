@@ -9,6 +9,6 @@ export default ({ config }) => ({
     proxyRedirectUri: process.env.EXPO_PROXY_REDIRECT,
     webClientId: process.env.FT_WEB_CLIENT_ID,
     webClientSecret: process.env.FT_WEB_CLIENT_SECRET,
-    leaderboardApiUrl: process.env.LEADERBOARD_API_URL,
+    leaderboardApiUrl: process.env.LEADERBOARD_API_URL || process.env.EXPO_PUBLIC_LEADERBOARD_API_URL,
   },
 });

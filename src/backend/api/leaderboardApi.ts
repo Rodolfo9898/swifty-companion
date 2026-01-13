@@ -5,7 +5,11 @@ const extra = (Constants.expoConfig?.extra ??
   (Constants as { manifest2?: { extra?: Record<string, unknown> } }).manifest2?.extra ??
   {}) as Record<string, unknown>;
 
-const leaderboardApiUrl = String(extra.leaderboardApiUrl || '');
+const envLeaderboardUrl =
+  (typeof process !== 'undefined' &&
+    (process.env?.EXPO_PUBLIC_LEADERBOARD_API_URL || process.env?.LEADERBOARD_API_URL)) ||
+  '';
+const leaderboardApiUrl = String(extra.leaderboardApiUrl || envLeaderboardUrl || '');
 
 export interface LeaderboardCampus {
   id: number;

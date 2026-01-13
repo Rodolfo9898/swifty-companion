@@ -24,4 +24,10 @@ export const config = {
   syncToken: process.env.LEADERBOARD_SYNC_TOKEN || '',
   syncCoalitions: process.env.LEADERBOARD_SYNC_COALITIONS === '1',
   syncLogtime: process.env.LEADERBOARD_SYNC_LOGTIME === '1',
+  minLevel: Number(process.env.LEADERBOARD_MIN_LEVEL ?? 0),
+  maxLevel: Number(process.env.LEADERBOARD_MAX_LEVEL ?? 30),
+  excludeLogins: (process.env.LEADERBOARD_EXCLUDE_LOGINS || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0),
 };

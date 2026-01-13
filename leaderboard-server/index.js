@@ -40,6 +40,19 @@ app.get('/leaderboard', (req, res) => {
 
   const whereParts = ['level IS NOT NULL'];
   const params = [];
+  if (Number.isFinite(config.minLevel)) {
+    whereParts.push('level >= ?');
+    params.push(config.minLevel);
+  }
+  if (Number.isFinite(config.maxLevel)) {
+    whereParts.push('level <= ?');
+    params.push(config.maxLevel);
+  }
+  if (config.excludeLogins.length) {
+    const placeholders = config.excludeLogins.map(() => '?').join(', ');
+    whereParts.push(`lower(login) NOT IN (${placeholders})`);
+    params.push(...config.excludeLogins);
+  }
   if (campusId) {
     whereParts.push('campus_id = ?');
     params.push(campusId);
@@ -90,6 +103,19 @@ app.get('/leaderboard/top', (req, res) => {
   const excludeLogin = String(req.query.excludeLogin ?? '').trim().toLowerCase();
   const whereParts = ['level IS NOT NULL'];
   const params = [];
+  if (Number.isFinite(config.minLevel)) {
+    whereParts.push('level >= ?');
+    params.push(config.minLevel);
+  }
+  if (Number.isFinite(config.maxLevel)) {
+    whereParts.push('level <= ?');
+    params.push(config.maxLevel);
+  }
+  if (config.excludeLogins.length) {
+    const placeholders = config.excludeLogins.map(() => '?').join(', ');
+    whereParts.push(`lower(login) NOT IN (${placeholders})`);
+    params.push(...config.excludeLogins);
+  }
   if (campusId) {
     whereParts.push('campus_id = ?');
     params.push(campusId);
