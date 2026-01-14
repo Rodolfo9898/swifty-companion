@@ -1,8 +1,8 @@
 import express from 'express';
 
-import { config } from './config.js';
-import { getDb } from './db.js';
-import { syncAll } from './sync.js';
+import { config } from '../config/index.js';
+import { getDb } from '../db/index.js';
+import { syncAll } from '../sync/index.js';
 
 const app = express();
 const db = getDb();
@@ -39,7 +39,7 @@ app.get('/leaderboard', (req, res) => {
   const sortColumn = allowedSort.get(sortField) ?? 'level';
 
   const whereParts = ['level IS NOT NULL'];
-  const params = [];
+  const params: Array<string | number> = [];
   if (Number.isFinite(config.minLevel)) {
     whereParts.push('level >= ?');
     params.push(config.minLevel);
@@ -52,6 +52,10 @@ app.get('/leaderboard', (req, res) => {
     const placeholders = config.excludeLogins.map(() => '?').join(', ');
     whereParts.push(`lower(login) NOT IN (${placeholders})`);
     params.push(...config.excludeLogins);
+    config.excludeLogins.forEach((value) => {
+      whereParts.push('(displayname IS NULL OR lower(displayname) NOT LIKE ?)');
+      params.push(`%${value}%`);
+    });
   }
   if (campusId) {
     whereParts.push('campus_id = ?');
@@ -74,7 +78,7 @@ app.get('/leaderboard', (req, res) => {
       FROM users
       ${where} AND lower(login) = ?
     `);
-    const row = positionStmt.get(...params, meLogin);
+    const row = positionStmt.get(...params, meLogin) as { pos?: number } | undefined;
     if (row?.pos) {
       targetPage = Math.max(1, Math.floor((row.pos - 1) / perPage) + 1);
     }
@@ -82,7 +86,7 @@ app.get('/leaderboard', (req, res) => {
 
   const offset = (targetPage - 1) * perPage;
   const totalStmt = db.prepare(`SELECT COUNT(*) as total FROM users ${where}`);
-  const total = totalStmt.get(...params).total;
+  const total = (totalStmt.get(...params) as { total: number }).total;
 
   const stmt = db.prepare(`
     SELECT id, login, displayname, title, image_url as image, campus_id as campusId, campus_name as campusName,
@@ -102,7 +106,7 @@ app.get('/leaderboard/top', (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit ?? 10), 1), 100);
   const excludeLogin = String(req.query.excludeLogin ?? '').trim().toLowerCase();
   const whereParts = ['level IS NOT NULL'];
-  const params = [];
+  const params: Array<string | number> = [];
   if (Number.isFinite(config.minLevel)) {
     whereParts.push('level >= ?');
     params.push(config.minLevel);
@@ -115,6 +119,10 @@ app.get('/leaderboard/top', (req, res) => {
     const placeholders = config.excludeLogins.map(() => '?').join(', ');
     whereParts.push(`lower(login) NOT IN (${placeholders})`);
     params.push(...config.excludeLogins);
+    config.excludeLogins.forEach((value) => {
+      whereParts.push('(displayname IS NULL OR lower(displayname) NOT LIKE ?)');
+      params.push(`%${value}%`);
+    });
   }
   if (campusId) {
     whereParts.push('campus_id = ?');
@@ -150,41 +158,39 @@ app.get('/promos', (req, res) => {
     ORDER BY promo DESC
   `);
   const rows = campusId ? stmt.all(campusId) : stmt.all();
-  res.json(rows.map((row) => row.promo));
+  res.json(rows.map((row: { promo: string }) => row.promo));
 });
 
 app.get('/status', (req, res) => {
-  const users = db.prepare('SELECT COUNT(*) as total FROM users').get().total;
-  const campuses = db.prepare('SELECT COUNT(*) as total FROM campuses').get().total;
-  const updatedAt = db.prepare('SELECT MAX(updated_at) as value FROM users').get().value;
+  const users = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+  const campuses = db.prepare('SELECT COUNT(*) as count FROM campuses').get() as { count: number };
+  const lastUserUpdate = db.prepare('SELECT MAX(updated_at) as updated_at FROM users').get() as {
+    updated_at?: number;
+  };
   res.json({
-    users,
-    campuses,
-    lastUserUpdate: updatedAt ? new Date(updatedAt).toISOString() : null,
+    users: users.count,
+    campuses: campuses.count,
+    lastUserUpdate: lastUserUpdate.updated_at ?? null,
   });
 });
 
 app.post('/sync', async (req, res) => {
-  if (config.syncToken && req.headers['x-sync-token'] !== config.syncToken) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+  if (config.syncToken) {
+    const authHeader = String(req.headers.authorization ?? '');
+    if (!authHeader || authHeader !== `Bearer ${config.syncToken}`) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
   }
+
   try {
     await syncAll();
     res.json({ status: 'ok' });
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Sync failed' });
+    const message = err instanceof Error ? err.message : 'Sync failed';
+    res.status(500).json({ error: message });
   }
 });
-
-const scheduleMs = config.syncIntervalMinutes * 60 * 1000;
-if (scheduleMs > 0) {
-  setInterval(() => {
-    syncAll().catch((err) => {
-      process.stderr.write(`sync error: ${err}\n`);
-    });
-  }, scheduleMs);
-}
 
 app.listen(config.port, () => {
   process.stdout.write(`Leaderboard API listening on :${config.port}\n`);

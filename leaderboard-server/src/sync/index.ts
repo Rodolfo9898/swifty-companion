@@ -1,20 +1,58 @@
-import { config } from './config.js';
-import { getDb, upsertCampus, upsertUser } from './db.js';
-import { fetchCampuses, fetchCampusUsers, fetchLocations, fetchUserCoalitions, fetchUserProfile } from './fortyTwoClient.js';
+import { config } from '../config/index.js';
+import { getDb, upsertCampus, upsertUser } from '../db/index.js';
+import {
+  fetchCampuses,
+  fetchCampusUsers,
+  fetchLocations,
+  fetchUserCoalitions,
+  fetchUserProfile,
+} from '../api/fortyTwoClient.js';
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+type Campus = {
+  id: number;
+  name: string;
+  city?: string | null;
+  country?: string | null;
+};
 
-function find42CursusEntry(user) {
+type CursusEntry = {
+  level?: number;
+  begin_at?: string | null;
+  cursus?: { id?: number; slug?: string | null; name?: string | null };
+};
+
+type CampusEntry = {
+  campus?: { id: number; name: string };
+  is_primary?: boolean;
+};
+
+type UserProfile = {
+  id: number;
+  login: string;
+  displayname?: string;
+  title?: string | null;
+  image?: { versions?: { small?: string | null }; link?: string | null };
+  correction_point?: number | null;
+  wallet?: number | null;
+  cursus_users?: CursusEntry[];
+  campus_users?: CampusEntry[];
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function find42CursusEntry(user: UserProfile) {
   const cursusUsers = user.cursus_users || [];
-  return cursusUsers.find((entry) => {
-    if (config.cursusId && entry.cursus?.id === config.cursusId) return true;
-    const slug = entry.cursus?.slug?.toLowerCase() || '';
-    const name = entry.cursus?.name?.toLowerCase() || '';
-    return slug.includes('42cursus') || name.includes('42cursus');
-  }) || null;
+  return (
+    cursusUsers.find((entry) => {
+      if (config.cursusId && entry.cursus?.id === config.cursusId) return true;
+      const slug = entry.cursus?.slug?.toLowerCase() || '';
+      const name = entry.cursus?.name?.toLowerCase() || '';
+      return slug.includes('42cursus') || name.includes('42cursus');
+    }) || null
+  );
 }
 
-function extract42CursusLevel(user) {
+function extract42CursusLevel(user: UserProfile) {
   const match = find42CursusEntry(user);
   if (!match || typeof match.level !== 'number') {
     return null;
@@ -22,7 +60,7 @@ function extract42CursusLevel(user) {
   return match.level;
 }
 
-function formatPromo(beginAt) {
+function formatPromo(beginAt?: string | null) {
   if (!beginAt) return null;
   const date = new Date(beginAt);
   if (Number.isNaN(date.getTime())) return null;
@@ -30,13 +68,13 @@ function formatPromo(beginAt) {
   return `${month}/${date.getUTCFullYear()}`;
 }
 
-function pickPrimaryCampus(user) {
+function pickPrimaryCampus(user: UserProfile, fallback: Campus) {
   const campusUsers = user.campus_users || [];
   const primary = campusUsers.find((entry) => entry.is_primary);
-  return primary?.campus || campusUsers[0]?.campus || null;
+  return primary?.campus || campusUsers[0]?.campus || fallback;
 }
 
-async function resolveCoalition(userId) {
+async function resolveCoalition(userId: number) {
   if (!config.syncCoalitions) return null;
   try {
     const { data } = await fetchUserCoalitions(userId);
@@ -47,7 +85,7 @@ async function resolveCoalition(userId) {
   }
 }
 
-async function syncWeeklyLogtime(db, userIdByLogin) {
+async function syncWeeklyLogtime(db: ReturnType<typeof getDb>) {
   if (!config.syncLogtime) return;
   process.stdout.write('Sync: weekly logtime\n');
   const now = new Date();
@@ -57,13 +95,13 @@ async function syncWeeklyLogtime(db, userIdByLogin) {
   monday.setUTCDate(monday.getUTCDate() - (dayOfWeek - 1));
   const sunday = new Date(monday.getTime() + 7 * day);
 
-  const params = {
+  const params: Record<string, string> = {
     'range[begin_at]': `${monday.toISOString()},${sunday.toISOString()}`,
-    'per_page': '100',
-    'page': '1',
+    per_page: '100',
+    page: '1',
   };
   let page = 1;
-  const logtimesByUser = new Map();
+  const logtimesByUser = new Map<number, Array<{ beginAt: Date; endAt: Date }>>();
   while (page <= 200) {
     params.page = String(page);
     process.stdout.write(`  locations page ${page}\n`);
@@ -76,7 +114,7 @@ async function syncWeeklyLogtime(db, userIdByLogin) {
       if (!logtimesByUser.has(entry.user.id)) {
         logtimesByUser.set(entry.user.id, []);
       }
-      logtimesByUser.get(entry.user.id).push({ beginAt, endAt });
+      logtimesByUser.get(entry.user.id)!.push({ beginAt, endAt });
     }
     if (data.length < 100) break;
     page += 1;
@@ -85,15 +123,15 @@ async function syncWeeklyLogtime(db, userIdByLogin) {
 
   const updateStmt = db.prepare('UPDATE users SET weekly_logtime = ? WHERE id = ?');
   for (const [userId, entries] of logtimesByUser.entries()) {
-    entries.sort((a, b) => (a.beginAt - b.beginAt));
+    entries.sort((a, b) => a.beginAt.getTime() - b.beginAt.getTime());
     let total = 0;
-    let prevEnd = null;
+    let prevEnd: Date | null = null;
     for (const entry of entries) {
       if (prevEnd && entry.beginAt < prevEnd) {
         entry.beginAt = prevEnd;
       }
       if (entry.endAt > entry.beginAt) {
-        total += entry.endAt - entry.beginAt;
+        total += entry.endAt.getTime() - entry.beginAt.getTime();
         prevEnd = entry.endAt;
       }
     }
@@ -105,7 +143,7 @@ async function syncCampuses() {
   const db = getDb();
   let page = 1;
   const perPage = 100;
-  const campuses = [];
+  const campuses: Campus[] = [];
   process.stdout.write(`Sync: loading campuses from ${config.apiBaseUrl}...\n`);
   while (page <= 50) {
     process.stdout.write(`  campuses page ${page}\n`);
@@ -136,19 +174,18 @@ async function syncCampuses() {
   return campuses;
 }
 
-async function syncCampusUsers(campus) {
+async function syncCampusUsers(campus: Campus) {
   let page = 1;
   const perPage = 100;
   const now = Date.now();
   process.stdout.write(`Sync: campus ${campus.name} (${campus.id})\n`);
   const db = getDb();
-  const userIdByLogin = new Map();
   while (page <= 200) {
     const { data } = await fetchCampusUsers(campus.id, page, perPage);
     if (!data.length) break;
     process.stdout.write(`  page ${page} (${data.length} users)\n`);
     for (const entry of data) {
-      let full = entry;
+      let full: UserProfile = entry;
       let level = extract42CursusLevel(full);
       if (level === null || !full.cursus_users) {
         try {
@@ -163,7 +200,7 @@ async function syncCampusUsers(campus) {
       if (level === null) continue;
 
       const cursusEntry = find42CursusEntry(full);
-      const campusEntry = pickPrimaryCampus(full) || campus;
+      const campusEntry = pickPrimaryCampus(full, campus);
       const beginAt = cursusEntry?.begin_at ?? null;
       const promo = formatPromo(beginAt);
       const coalitionName = await resolveCoalition(full.id);
@@ -185,12 +222,11 @@ async function syncCampusUsers(campus) {
         promo,
         updated_at: now,
       });
-      userIdByLogin.set(entry.login, entry.id);
     }
     if (data.length < perPage) break;
     page += 1;
   }
-  await syncWeeklyLogtime(db, userIdByLogin);
+  await syncWeeklyLogtime(db);
 }
 
 export async function syncAll() {
@@ -211,7 +247,7 @@ export async function syncAll() {
   }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('sync.js')) {
+if (process.argv[1] && process.argv[1].endsWith('sync.ts')) {
   syncAll()
     .then(() => {
       process.stdout.write('Sync completed.\n');

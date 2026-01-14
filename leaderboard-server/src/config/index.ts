@@ -5,14 +5,14 @@ import dotenv from 'dotenv';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') });
 
 export const config = {
   apiBaseUrl: process.env.API_BASE_URL || 'https://api.intra.42.fr',
   clientId: process.env.FT_CLIENT_ID || '',
   clientSecret: process.env.FT_CLIENT_SECRET || '',
   port: Number(process.env.LEADERBOARD_PORT || 4242),
-  dbPath: process.env.LEADERBOARD_DB_PATH || path.resolve(__dirname, 'data', 'leaderboard.db'),
+  dbPath: process.env.LEADERBOARD_DB_PATH || path.resolve(__dirname, '..', '..', 'data', 'leaderboard.db'),
   syncIntervalMinutes: Number(process.env.LEADERBOARD_SYNC_INTERVAL_MINUTES || 720),
   cursusId: Number(process.env.FT_CURSUS_ID || 21),
   campusIds: (process.env.LEADERBOARD_CAMPUS_IDS || '')

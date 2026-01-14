@@ -1,13 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { fetchMeProfile } from '../../backend/api/fortyTwoApi';
+import {
+  fetchMeProfile,
+  fetchProjectByName,
+  fetchProjectBySlug,
+  fetchProjectTags,
+} from '../../backend/api/fortyTwoApi';
 import ProgressBar from '../components/ProgressBar';
 import createPlannerStyles from '../styles/plannerStyles';
-import { readEventsCache, readPlannerCache, writePlannerCache } from '../utils/appCache';
+import {
+  isCacheFresh,
+  readCacheMeta,
+  readEventsCache,
+  readGroupCache,
+  readPlannerCache,
+  writeCacheMeta,
+  writeGroupCache,
+  writePlannerCache,
+} from '../utils/appCache';
 import { getRncpCatalog } from '../utils/rncpCatalog';
 import { useTheme } from '../ThemeContext';
 import type { FortyTwoProjectUser, FortyTwoUser } from '../types/fortyTwo';
+import { normalizeProjectKey } from '../utils/projectKey';
 
 type PlannerProject = {
   id: number;
@@ -48,6 +63,12 @@ const INTERNSHIPS: Internship[] = [
 const STATIC_EVENT_DATA: Record<string, { events: string[] }> = {
   'rperez-t': require('../data/events_rperezt.json'),
 };
+const STATIC_GROUP_DATA: Record<string, { projects: { id: number }[] }> = {
+  'rperez-t': require('../data/group_projects_done.json'),
+};
+const GROUP_TAG = 'group';
+const projectCache = new Map<string, { id: number; difficulty: number }>();
+const tagCache = new Map<number, string[]>();
 
 function getPrimaryLevel(levels: Array<{ level: number; cursus?: { id?: number; slug?: string; name?: string } }> | undefined) {
   if (!levels || levels.length === 0) return 0;
@@ -107,6 +128,10 @@ export default function PlannerScreen() {
   const [selectedGrade, setSelectedGrade] = useState('100');
   const [eventCount, setEventCount] = useState(0);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
+  const [groupProjectCount, setGroupProjectCount] = useState(0);
+  const [loadedGroupProjects, setLoadedGroupProjects] = useState(false);
+  const GRADE_MIN = 80;
+  const GRADE_MAX = 125;
 
   useEffect(() => {
     let isActive = true;
@@ -282,7 +307,139 @@ export default function PlannerScreen() {
   const requiredLevel = selectedTitle?.level ?? (rncpLevel === 6 ? 17 : 21);
   const requiredEvents = selectedTitle?.number_of_events ?? (rncpLevel === 6 ? 10 : 15);
   const requiredInternships = selectedTitle?.number_of_experiences ?? 2;
+  const requiredGroupProjects = 2;
   const totalInternships = completedExperiences.length + plannedInternships.length;
+
+  useEffect(() => {
+    if (!profile || loadedGroupProjects) return;
+    let active = true;
+
+    const loadGroupProjects = async () => {
+      try {
+        const staticGroups = STATIC_GROUP_DATA[profile.login];
+        if (staticGroups?.projects?.length) {
+          const count = staticGroups.projects.length;
+          if (active) {
+            setGroupProjectCount(count);
+            setLoadedGroupProjects(true);
+            await writeGroupCache({ count, projects: staticGroups.projects });
+            const meta = await readCacheMeta();
+            await writeCacheMeta({ ...meta, groupUpdatedAt: Date.now() });
+          }
+          return;
+        }
+        const fresh = await isCacheFresh('group');
+        if (fresh) {
+          const cached = await readGroupCache<{ count: number }>();
+          if (cached && active) {
+            setGroupProjectCount(cached.count);
+            setLoadedGroupProjects(true);
+            return;
+          }
+        }
+        const uniqueProjects = new Map<string, { slug: string; name: string; validated: boolean }>();
+        (profile.projects_users ?? []).forEach((project) => {
+          const slugKey = normalizeProjectKey(project.project.slug);
+          const nameKey = normalizeProjectKey(project.project.name);
+          const validated =
+            project.validated ??
+            project['validated?'] ??
+            (project.final_mark !== null ? project.final_mark >= 50 : project.status === 'finished');
+          const existingSlug = uniqueProjects.get(slugKey);
+          if (!existingSlug || (validated && !existingSlug.validated)) {
+            uniqueProjects.set(slugKey, { slug: project.project.slug, name: project.project.name, validated: Boolean(validated) });
+          }
+          const existingName = uniqueProjects.get(nameKey);
+          if (!existingName || (validated && !existingName.validated)) {
+            uniqueProjects.set(nameKey, { slug: project.project.slug, name: project.project.name, validated: Boolean(validated) });
+          }
+        });
+
+        let count = 0;
+        for (const entry of uniqueProjects.values()) {
+          if (!entry.validated) continue;
+          const key = normalizeProjectKey(entry.slug);
+          const cached = projectCache.get(key);
+          let projectId = cached?.id;
+          if (!projectId) {
+            let info = await fetchProjectBySlug(entry.slug);
+            if (!info) {
+              info = await fetchProjectByName(entry.name);
+            }
+            if (!info?.id) continue;
+            projectId = info.id;
+            projectCache.set(key, { id: projectId, difficulty: info.difficulty ?? 0 });
+          }
+          const cachedTags = tagCache.get(projectId);
+          if (cachedTags) {
+            if (cachedTags.some((tag) => tag.toLowerCase().includes(GROUP_TAG))) {
+              count += 1;
+            }
+            continue;
+          }
+          const tags = await fetchProjectTags(projectId);
+          const tagNames = tags.map((tag) => tag.name);
+          tagCache.set(projectId, tagNames);
+          if (tagNames.some((tag) => tag.toLowerCase().includes(GROUP_TAG))) {
+            count += 1;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+        if (active) {
+          setGroupProjectCount(count);
+          setLoadedGroupProjects(true);
+          await writeGroupCache({ count, projects: Array.from(uniqueProjects.values()) });
+          const meta = await readCacheMeta();
+          await writeCacheMeta({ ...meta, groupUpdatedAt: Date.now() });
+        }
+      } catch {
+        if (active) {
+          setGroupProjectCount(0);
+        }
+      }
+    };
+
+    loadGroupProjects();
+    return () => {
+      active = false;
+    };
+  }, [profile, loadedGroupProjects]);
+  const blockStatuses = useMemo(() => {
+    return blocks.map((block) => {
+      const completedCount = block.projects.filter((project) => completedProjects.has(project.id)).length;
+      const plannedCount = block.projects.filter((project) => plannedProjects[project.id]).length;
+      let xpTotal = 0;
+      block.projects.forEach((project) => {
+        const completed = completedProjects.get(project.id);
+        if (completed) {
+          xpTotal += Math.round((project.xp * completed.finalMark) / 100);
+          return;
+        }
+        const planned = plannedProjects[project.id];
+        if (planned) {
+          xpTotal += planned.xp;
+        }
+      });
+      const isDone = xpTotal >= block.min_xp && completedCount + plannedCount >= block.min_projects;
+      return { block, completedCount, plannedCount, xpTotal, isDone };
+    });
+  }, [blocks, completedProjects, plannedProjects]);
+
+  const meetsLevel = plannedLevel >= requiredLevel;
+  const meetsEvents = eventCount >= requiredEvents;
+  const meetsInternships = totalInternships >= requiredInternships;
+  const meetsGroups = groupProjectCount >= requiredGroupProjects;
+  const meetsBlocks = blockStatuses.every((entry) => entry.isDone);
+  const eligibilityLabel = meetsLevel && meetsEvents && meetsInternships && meetsBlocks && meetsGroups
+    ? 'Elegible'
+    : meetsLevel && meetsEvents && meetsBlocks && meetsGroups && !meetsInternships
+      ? 'Work expierience needed'
+      : 'Not Elegible';
+  const eligibilityStyle = meetsLevel && meetsEvents && meetsInternships && meetsBlocks && meetsGroups
+    ? styles.eligibilityOk
+    : meetsLevel && meetsEvents && meetsBlocks && meetsGroups && !meetsInternships
+      ? styles.eligibilityWarn
+      : styles.eligibilityKo;
 
   const togglePlan = (project: PlannerProject) => {
     setPlannedProjects((prev) => {
@@ -317,8 +474,18 @@ export default function PlannerScreen() {
     setActiveProjectId(project.id);
   };
 
+  const clampGrade = (value: number) => Math.max(GRADE_MIN, Math.min(GRADE_MAX, value));
+
+  const normalizeGradeInput = (value: string) => {
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return value;
+    return String(clampGrade(numeric));
+  };
+
   const updatePlanGrade = (project: PlannerProject, value: string) => {
-    const grade = Math.max(80, Math.min(125, Number(value)));
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return;
+    const grade = clampGrade(numeric);
     setPlannedProjects((prev) => ({
       ...prev,
       [project.id]: {
@@ -328,10 +495,30 @@ export default function PlannerScreen() {
     }));
   };
 
+  const stepPlanGrade = (project: PlannerProject, delta: number) => {
+    const current = plannedProjects[project.id]?.grade ?? 100;
+    const next = clampGrade(current + delta);
+    setPlannedProjects((prev) => ({
+      ...prev,
+      [project.id]: {
+        grade: next,
+        xp: Math.round((project.xp * next) / 100),
+      },
+    }));
+  };
+
+  const stepSelectedGrade = (delta: number) => {
+    const numeric = Number(selectedGrade);
+    const base = Number.isFinite(numeric) ? numeric : 100;
+    const next = clampGrade(base + delta);
+    setSelectedGrade(String(next));
+  };
+
   const handleAddInternship = () => {
     if (!selectedInternship) return;
-    const grade = Number(selectedGrade);
-    if (Number.isNaN(grade) || grade < 100 || grade > 125) return;
+    const numeric = Number(selectedGrade);
+    if (Number.isNaN(numeric)) return;
+    const grade = clampGrade(numeric);
     setPlannedInternships((prev) => {
       const existing = prev.find((item) => item.name === selectedInternship.name);
       if (existing) {
@@ -364,10 +551,12 @@ export default function PlannerScreen() {
           return (
             <TouchableOpacity
               key={`planner-${value}`}
-              style={[styles.tab, isActive && styles.tabActive]}
+              style={[styles.tab, styles.tabCompact, isActive && styles.tabActive]}
               onPress={() => setRncpLevel(value as 6 | 7)}
             >
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>RNCP {value}</Text>
+              <Text style={[styles.tabText, styles.tabTextCompact, isActive && styles.tabTextActive]}>
+                RNCP {value}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -376,12 +565,12 @@ export default function PlannerScreen() {
       <View style={styles.tabRow}>
         {(rncpLevel === 6
           ? [
-              { key: 'web', label: 'Web & Mobile' },
-              { key: 'apps', label: 'Application' },
+              { key: 'web', label: 'Développement web et mobile' },
+              { key: 'apps', label: 'Développement applicatif' },
             ]
           : [
-              { key: 'sec', label: 'Information systems' },
-              { key: 'ai', label: 'AI & Data' },
+              { key: 'sec', label: "Système d'information et réseaux" },
+              { key: 'ai', label: 'Architecture des bases de données et data' },
             ]).map((option) => {
           const isActive = path === option.key;
           return (
@@ -419,77 +608,99 @@ export default function PlannerScreen() {
             {totalInternships} / {requiredInternships}
           </Text>
         </View>
+        <View style={styles.progressRow}>
+          <Text style={styles.progressLabel}>Group projects</Text>
+          <ProgressBar value={groupProjectCount / requiredGroupProjects} />
+          <Text style={styles.progressHint}>
+            {groupProjectCount} / {requiredGroupProjects}
+          </Text>
+        </View>
+        <View style={styles.eligibilityRow}>
+          <Text style={[styles.eligibilityText, eligibilityStyle]}>{eligibilityLabel}</Text>
+        </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Planned internships</Text>
-        <View style={styles.pillRow}>
-          {availableInternships.map((internship) => {
-            const isActive = selectedInternship?.name === internship.name;
-            return (
-              <TouchableOpacity
-                key={internship.name}
-                style={[styles.pill, isActive && styles.pillActive]}
-                onPress={() => setSelectedInternship(internship)}
-              >
-                <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
-                  {internship.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        {selectedInternship ? (
-          <View style={styles.projectActions}>
-            <TextInput
-              style={styles.gradeInput}
-              value={selectedGrade}
-              onChangeText={setSelectedGrade}
-              keyboardType="numeric"
-              placeholder="Grade"
-            />
-            <TouchableOpacity style={styles.actionButton} onPress={handleAddInternship}>
-              <Text style={styles.actionButtonText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-        {plannedInternships.length === 0 ? (
-          <Text style={styles.emptyText}>No planned internships yet.</Text>
-        ) : (
-          plannedInternships.map((internship) => (
-            <View key={internship.name} style={styles.projectRow}>
-              <Text style={styles.projectName}>{internship.name}</Text>
-              <Text style={styles.projectMeta}>
-                Grade {internship.grade} • XP {Math.round(internship.baseXP * (internship.grade / 100))}
-              </Text>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => removeInternship(internship.name)}
-              >
-                <Text style={styles.actionButtonText}>Remove</Text>
+      {availableInternships.length || plannedInternships.length ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Planned internships</Text>
+          {availableInternships.length ? (
+            <View style={styles.pillRow}>
+              {availableInternships.map((internship) => {
+                const isActive = selectedInternship?.name === internship.name;
+                return (
+                  <TouchableOpacity
+                    key={internship.name}
+                    style={[styles.pill, isActive && styles.pillActive]}
+                    onPress={() => setSelectedInternship(internship)}
+                  >
+                    <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                      {internship.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
+          {selectedInternship ? (
+            <View style={styles.projectActions}>
+              {(() => {
+                const numeric = Number(selectedGrade);
+                const base = Number.isFinite(numeric) ? numeric : 100;
+                const atMin = base <= GRADE_MIN;
+                const atMax = base >= GRADE_MAX;
+                return (
+                  <View style={styles.stepper}>
+                    <TouchableOpacity
+                      style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                      onPress={() => stepSelectedGrade(-1)}
+                      disabled={atMin}
+                    >
+                      <Text style={styles.stepButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <TextInput
+                      style={[styles.gradeInput, styles.gradeInputCentered]}
+                      value={selectedGrade}
+                      onChangeText={(value) => setSelectedGrade(normalizeGradeInput(value))}
+                      keyboardType="numeric"
+                      placeholder="Grade"
+                    />
+                    <TouchableOpacity
+                      style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                      onPress={() => stepSelectedGrade(1)}
+                      disabled={atMax}
+                    >
+                      <Text style={styles.stepButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+              <TouchableOpacity style={styles.actionButton} onPress={handleAddInternship}>
+                <Text style={styles.actionButtonText}>Add</Text>
               </TouchableOpacity>
             </View>
-          ))
-        )}
-      </View>
+          ) : null}
+          {plannedInternships.length === 0 ? (
+            <Text style={styles.emptyText}>No planned internships yet.</Text>
+          ) : (
+            plannedInternships.map((internship) => (
+              <View key={internship.name} style={[styles.projectRow, styles.projectRowPlanned]}>
+                <Text style={styles.projectNamePlanned}>{internship.name}</Text>
+                <Text style={styles.projectMetaPlanned}>
+                  Grade {internship.grade} • XP {Math.round(internship.baseXP * (internship.grade / 100))}
+                </Text>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => removeInternship(internship.name)}
+                >
+                  <Text style={styles.actionButtonText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+      ) : null}
 
-      {blocks.map((block) => {
-        const completedCount = block.projects.filter((project) => completedProjects.has(project.id)).length;
-        const plannedCount = block.projects.filter((project) => plannedProjects[project.id]).length;
-        let xpTotal = 0;
-        block.projects.forEach((project) => {
-          const completed = completedProjects.get(project.id);
-          if (completed) {
-            xpTotal += Math.round((project.xp * completed.finalMark) / 100);
-            return;
-          }
-          const planned = plannedProjects[project.id];
-          if (planned) {
-            xpTotal += planned.xp;
-          }
-        });
-        const isDone =
-          xpTotal >= block.min_xp && completedCount + plannedCount >= block.min_projects;
+      {blockStatuses.map(({ block, completedCount, plannedCount, xpTotal, isDone }) => {
         return (
           <View key={block.id} style={styles.card}>
             <View style={styles.blockHeader}>
@@ -564,12 +775,36 @@ export default function PlannerScreen() {
                             <Text style={styles.actionButtonText}>Remove</Text>
                           </TouchableOpacity>
                           {activeProjectId === project.id ? (
-                            <TextInput
-                              style={styles.gradeInput}
-                              value={String(planned.grade)}
-                              onChangeText={(value) => updatePlanGrade(project, value)}
-                              keyboardType="numeric"
-                            />
+                            <View style={styles.stepper}>
+                              {(() => {
+                                const atMin = planned.grade <= GRADE_MIN;
+                                const atMax = planned.grade >= GRADE_MAX;
+                                return (
+                                  <>
+                                    <TouchableOpacity
+                                      style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                                      onPress={() => stepPlanGrade(project, -1)}
+                                      disabled={atMin}
+                                    >
+                                      <Text style={styles.stepButtonText}>-</Text>
+                                    </TouchableOpacity>
+                                    <TextInput
+                                      style={[styles.gradeInput, styles.gradeInputCentered]}
+                                      value={String(planned.grade)}
+                                      onChangeText={(value) => updatePlanGrade(project, value)}
+                                      keyboardType="numeric"
+                                    />
+                                    <TouchableOpacity
+                                      style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                                      onPress={() => stepPlanGrade(project, 1)}
+                                      disabled={atMax}
+                                    >
+                                      <Text style={styles.stepButtonText}>+</Text>
+                                    </TouchableOpacity>
+                                  </>
+                                );
+                              })()}
+                            </View>
                           ) : null}
                         </>
                       ) : null}

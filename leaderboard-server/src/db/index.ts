@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 
-import { config } from './config.js';
+import { config } from '../config/index.js';
 
-let db;
+let db: Database.Database | undefined;
 
-function ensureDir(filePath) {
+function ensureDir(filePath: string) {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -51,10 +51,10 @@ export function getDb() {
     );
   `);
   if (existingColumns) {
-    const columns = db.prepare('PRAGMA table_info(users)').all().map((col) => col.name);
-    const addColumn = (name, definition) => {
+    const columns = db.prepare('PRAGMA table_info(users)').all().map((col: { name: string }) => col.name);
+    const addColumn = (name: string, definition: string) => {
       if (!columns.includes(name)) {
-        db.exec(`ALTER TABLE users ADD COLUMN ${name} ${definition}`);
+        db!.exec(`ALTER TABLE users ADD COLUMN ${name} ${definition}`);
       }
     };
     addColumn('title', 'TEXT');
@@ -75,7 +75,7 @@ export function getDb() {
   return db;
 }
 
-export function upsertCampus(campus) {
+export function upsertCampus(campus: { id: number; name: string; city?: string | null; country?: string | null; updated_at: number }) {
   const database = getDb();
   const stmt = database.prepare(`
     INSERT INTO campuses (id, name, city, country, updated_at)
@@ -89,7 +89,24 @@ export function upsertCampus(campus) {
   stmt.run(campus);
 }
 
-export function upsertUser(user) {
+export function upsertUser(user: {
+  id: number;
+  login: string;
+  displayname?: string | null;
+  title?: string | null;
+  image_url?: string | null;
+  campus_id?: number | null;
+  campus_name?: string | null;
+  level?: number | null;
+  weekly_logtime?: number | null;
+  correction_points?: number | null;
+  wallets?: number | null;
+  blackholed_at?: string | null;
+  coalition_name?: string | null;
+  begin_at?: string | null;
+  promo?: string | null;
+  updated_at: number;
+}) {
   const database = getDb();
   const stmt = database.prepare(`
     INSERT INTO users (

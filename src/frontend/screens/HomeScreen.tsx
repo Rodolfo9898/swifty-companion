@@ -18,7 +18,6 @@ const TILES: Array<{
   { title: 'Leaderboard', subtitle: 'Compare yourself with the rest of 42.', route: 'Leaderboard' },
   { title: 'XP Calculator', subtitle: 'Plan your journey.', route: 'Calculator' },
   { title: 'RNCP Planner', subtitle: 'Plan your RNCP path.', route: 'Planner' },
-  { title: 'RNCP', subtitle: 'Track RNCP progress.', route: 'Rncp' },
   { title: 'Quick Access', subtitle: 'Intranet shortcuts and essentials.', route: 'Bonus' },
 ];
 
@@ -27,6 +26,7 @@ export default function HomeScreen({ navigation }: Props) {
   const styles = useMemo(() => createHomeStyles(colors), [colors]);
   const { user } = useAuth();
   const avatar = user?.image?.link;
+  const canOpenProfile = Boolean(user?.login);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -45,6 +45,17 @@ export default function HomeScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.grid}>
+        <TouchableOpacity
+          style={[styles.tile, !canOpenProfile && { opacity: 0.6 }]}
+          onPress={() => {
+            if (!user?.login) return;
+            navigation.navigate('Profile', { login: user.login, initialProfile: user });
+          }}
+          disabled={!canOpenProfile}
+        >
+          <Text style={styles.tileTitle}>My Profile</Text>
+          <Text style={styles.tileSubtitle}>Open your current 42 profile.</Text>
+        </TouchableOpacity>
         {TILES.map((tile) => (
           <TouchableOpacity
             key={tile.route}

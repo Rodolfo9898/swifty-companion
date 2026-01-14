@@ -13,7 +13,6 @@ import LoadingScreen from './screens/LoadingScreen';
 import LoginScreen from './screens/LoginScreen';
 import PlannerScreen from './screens/PlannerScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import RncpScreen from './screens/RncpScreen';
 import SearchScreen from './screens/SearchScreen';
 import type { FortyTwoUser } from './types/fortyTwo';
 import createAppRootStyles from './styles/appRootStyles';
@@ -29,7 +28,6 @@ export type RootStackParamList = {
   Leaderboard: undefined;
   Calculator: undefined;
   Planner: undefined;
-  Rncp: undefined;
   DevCache: undefined;
 };
 
@@ -158,21 +156,6 @@ function AppNavigator() {
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
                       <Text style={styles.headerText}>RNCP Planner</Text>
-                    </View>
-                  </View>
-                ),
-                headerRight: headerActions,
-              }}
-            />
-            <Stack.Screen
-              name="Rncp"
-              component={RncpScreen}
-              options={{
-                headerTitle: () => (
-                  <View style={styles.headerTitle}>
-                    <View style={styles.headerTitleRow}>
-                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
-                      <Text style={styles.headerText}>RNCP</Text>
                     </View>
                   </View>
                 ),

@@ -1,9 +1,9 @@
-import { config } from './config.js';
+import { config } from '../config/index.js';
 
-let tokenCache = null;
-let inflight = null;
+let tokenCache: { token: string; expiresAt: number } | null = null;
+let inflight: Promise<string> | null = null;
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function fetchToken() {
   if (!config.clientId || !config.clientSecret) {
@@ -27,7 +27,7 @@ async function fetchToken() {
     throw new Error(`Token error ${response.status}: ${text || response.statusText}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { access_token: string; expires_in: number };
   tokenCache = {
     token: data.access_token,
     expiresAt: Date.now() + data.expires_in * 1000 - 60_000,
@@ -48,7 +48,7 @@ async function getToken(force = false) {
   }
 }
 
-async function fetchJson(path, attempt = 0) {
+async function fetchJson(path: string, attempt = 0) {
   const token = await getToken();
   const response = await fetch(`${config.apiBaseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -79,7 +79,7 @@ export async function fetchCampuses(page = 1, perPage = 100) {
   return fetchJson(`/v2/campus?page=${page}&per_page=${perPage}`);
 }
 
-export async function fetchCampusUsers(campusId, page = 1, perPage = 100) {
+export async function fetchCampusUsers(campusId: number, page = 1, perPage = 100) {
   const params = new URLSearchParams({
     page: String(page),
     per_page: String(perPage),
@@ -89,15 +89,15 @@ export async function fetchCampusUsers(campusId, page = 1, perPage = 100) {
   return fetchJson(`/v2/campus/${campusId}/users?${params.toString()}`);
 }
 
-export async function fetchUserProfile(login) {
+export async function fetchUserProfile(login: string) {
   return fetchJson(`/v2/users/${encodeURIComponent(login)}`);
 }
 
-export async function fetchUserCoalitions(userId) {
+export async function fetchUserCoalitions(userId: number) {
   return fetchJson(`/v2/users/${userId}/coalitions`);
 }
 
-export async function fetchLocations(params) {
+export async function fetchLocations(params: Record<string, string>) {
   const search = new URLSearchParams(params);
   return fetchJson(`/v2/locations?${search.toString()}`);
 }

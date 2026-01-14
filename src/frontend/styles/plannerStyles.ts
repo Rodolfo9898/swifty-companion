@@ -27,6 +27,7 @@ export default function createPlannerStyles(colors: ThemeColors) {
     tabRow: {
       flexDirection: 'row',
       gap: spacing.sm,
+      justifyContent: 'center',
     },
     tab: {
       flex: 1,
@@ -37,6 +38,11 @@ export default function createPlannerStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceAlt,
       alignItems: 'center',
     },
+    tabCompact: {
+      paddingVertical: 6,
+      flex: 0,
+      paddingHorizontal: 12,
+    },
     tabActive: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,
@@ -45,6 +51,9 @@ export default function createPlannerStyles(colors: ThemeColors) {
       color: colors.text,
       fontWeight: '600',
       fontSize: 12,
+    },
+    tabTextCompact: {
+      fontSize: 11,
     },
     tabTextActive: {
       color: colors.accentText,
@@ -72,6 +81,23 @@ export default function createPlannerStyles(colors: ThemeColors) {
     progressHint: {
       color: colors.textSubtle,
       fontSize: 12,
+    },
+    eligibilityRow: {
+      marginTop: spacing.sm,
+      alignItems: 'flex-start',
+    },
+    eligibilityText: {
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    eligibilityOk: {
+      color: '#22c55e',
+    },
+    eligibilityWarn: {
+      color: '#facc15',
+    },
+    eligibilityKo: {
+      color: '#ef4444',
     },
     pillRow: {
       flexDirection: 'row',
@@ -171,6 +197,29 @@ export default function createPlannerStyles(colors: ThemeColors) {
       gap: spacing.sm,
       marginTop: spacing.xs,
     },
+    stepper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    stepButton: {
+      width: 24,
+      height: 32,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepButtonDisabled: {
+      opacity: 0.4,
+    },
+    stepButtonText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
     actionButton: {
       borderRadius: 10,
       paddingVertical: 6,
@@ -202,6 +251,9 @@ export default function createPlannerStyles(colors: ThemeColors) {
       paddingHorizontal: 10,
       fontSize: 12,
       textAlign: 'center',
+    },
+    gradeInputCentered: {
+      minWidth: 56,
     },
     emptyText: {
       color: colors.textMuted,
