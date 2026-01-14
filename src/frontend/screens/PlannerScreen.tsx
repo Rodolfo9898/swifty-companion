@@ -217,11 +217,9 @@ export default function PlannerScreen() {
   }, [rncpLevel, path, plannedProjects, plannedInternships]);
 
   useEffect(() => {
-    if (rncpLevel === 7 && path === 'web') {
-      setPath('sec');
-    }
-    if (rncpLevel === 6 && path === 'sec') {
-      setPath('web');
+    const validPaths = rncpLevel === 6 ? ['web', 'apps'] : ['sec', 'ai'];
+    if (!validPaths.includes(path)) {
+      setPath(validPaths[0] as typeof path);
     }
   }, [rncpLevel, path]);
 

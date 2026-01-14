@@ -105,9 +105,31 @@ export default function CalculatorScreen() {
 
   const updateProject = (id: string, field: 'name' | 'grade' | 'bonus', value: string | boolean) => {
     setProjects((prev) =>
-      prev.map((project) =>
-        project.id === id ? { ...project, [field]: value } : project,
-      ),
+      prev.map((project) => {
+        if (project.id !== id) return project;
+        if (field !== 'grade') {
+          return { ...project, [field]: value };
+        }
+        const raw = typeof value === 'string' ? value : String(value);
+        const numeric = Number(raw);
+        if (Number.isNaN(numeric)) {
+          return { ...project, grade: raw };
+        }
+        const clamped = Math.max(80, Math.min(125, numeric));
+        return { ...project, grade: String(clamped) };
+      }),
+    );
+  };
+
+  const stepGrade = (id: string, delta: number) => {
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== id) return project;
+        const current = Number(project.grade);
+        const base = Number.isFinite(current) ? current : 100;
+        const next = Math.max(80, Math.min(125, base + delta));
+        return { ...project, grade: String(next) };
+      }),
     );
   };
 
@@ -233,12 +255,38 @@ export default function CalculatorScreen() {
                 />
               </View>
               <View style={styles.cellSmall}>
-                <TextInput
-                  style={styles.inputSmall}
-                  keyboardType="numeric"
-                  value={project.grade}
-                  onChangeText={(value) => updateProject(project.id, 'grade', value)}
-                />
+                <View style={styles.stepper}>
+                  {(() => {
+                    const numericGrade = Number(project.grade);
+                    const clampedGrade = Number.isFinite(numericGrade) ? numericGrade : 100;
+                    const atMin = clampedGrade <= 80;
+                    const atMax = clampedGrade >= 125;
+                    return (
+                      <>
+                        <TouchableOpacity
+                          style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                          onPress={() => stepGrade(project.id, -1)}
+                          disabled={atMin}
+                        >
+                          <Text style={styles.stepButtonText}>-</Text>
+                        </TouchableOpacity>
+                        <TextInput
+                          style={[styles.inputSmall, styles.gradeInput]}
+                          keyboardType="numeric"
+                          value={project.grade}
+                          onChangeText={(value) => updateProject(project.id, 'grade', value)}
+                        />
+                        <TouchableOpacity
+                          style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                          onPress={() => stepGrade(project.id, 1)}
+                          disabled={atMax}
+                        >
+                          <Text style={styles.stepButtonText}>+</Text>
+                        </TouchableOpacity>
+                      </>
+                    );
+                  })()}
+                </View>
               </View>
               <View style={styles.cellSmall}>
                 <TouchableOpacity

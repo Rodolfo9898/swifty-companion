@@ -79,6 +79,29 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     cellSmall: {
       flex: 1,
     },
+    stepper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    stepButton: {
+      width: 24,
+      height: 32,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepButtonDisabled: {
+      opacity: 0.4,
+    },
+    stepButtonText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
     cellAction: {
       width: 28,
       alignItems: 'center',
@@ -97,6 +120,11 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       borderWidth: 1,
       borderColor: colors.border,
       fontSize: 12,
+    },
+    gradeInput: {
+      textAlign: 'center',
+      flex: 1,
+      minWidth: 44,
     },
     addRowButton: {
       backgroundColor: colors.surfaceAlt,
