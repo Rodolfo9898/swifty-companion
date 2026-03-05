@@ -184,14 +184,14 @@ export default function CalculatorScreen() {
     await writeCalculatorRoadmaps(next);
   };
 
-  const { result, progression } = useMemo(() => {
+  const result = useMemo(() => {
     const currentLevel = Number(level);
     if (
       Number.isNaN(currentLevel) ||
       currentLevel < 0 ||
       projects.length === 0
     ) {
-      return { result: null, progression: null };
+      return null;
     }
 
     const currentLevelFloor = Math.floor(currentLevel);
@@ -219,10 +219,7 @@ export default function CalculatorScreen() {
     const fraction = (finalXp - rangeStart) / (rangeEnd - rangeStart);
     const computedLevel = newLevel + Math.max(0, Math.min(1, fraction));
 
-    return {
-      result: computedLevel,
-      progression: computedLevel - currentLevel,
-    };
+    return computedLevel;
   }, [level, projects]);
 
   return (
@@ -235,74 +232,79 @@ export default function CalculatorScreen() {
             <Text style={styles.levelPillText}>{Number.isFinite(level) ? level.toFixed(2) : '0.00'}</Text>
           </View>
         </View>
-        <View style={styles.tableHeader}>
-          <Text style={styles.label}>Name</Text>
-          <Text style={styles.label}>Mark</Text>
-          <Text style={styles.label}>Bonus</Text>
-          <Text style={styles.label}>XP</Text>
-          <Text style={styles.label}> </Text>
-        </View>
+
         {projects.map((project) => (
           <View key={project.id}>
             <View style={styles.tableRow}>
-              <View style={styles.cellName}>
-                <TextInput
-                  style={styles.inputSmall}
-                  value={project.name}
-                  placeholder="Start typing..."
-                  onChangeText={(value) => updateProject(project.id, 'name', value)}
-                  onFocus={() => setActiveProjectId(project.id)}
-                />
-              </View>
-              <View style={styles.cellSmall}>
-                <View style={styles.stepper}>
-                  {(() => {
-                    const numericGrade = Number(project.grade);
-                    const clampedGrade = Number.isFinite(numericGrade) ? numericGrade : 100;
-                    const atMin = clampedGrade <= 80;
-                    const atMax = clampedGrade >= 125;
-                    return (
-                      <>
-                        <TouchableOpacity
-                          style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
-                          onPress={() => stepGrade(project.id, -1)}
-                          disabled={atMin}
-                        >
-                          <Text style={styles.stepButtonText}>-</Text>
-                        </TouchableOpacity>
-                        <TextInput
-                          style={[styles.inputSmall, styles.gradeInput]}
-                          keyboardType="numeric"
-                          value={project.grade}
-                          onChangeText={(value) => updateProject(project.id, 'grade', value)}
-                        />
-                        <TouchableOpacity
-                          style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
-                          onPress={() => stepGrade(project.id, 1)}
-                          disabled={atMax}
-                        >
-                          <Text style={styles.stepButtonText}>+</Text>
-                        </TouchableOpacity>
-                      </>
-                    );
-                  })()}
+              <View style={styles.rowTop}>
+                <View style={styles.cellName}>
+                  <TextInput
+                    style={styles.inputSmall}
+                    value={project.name}
+                    placeholder="Start typing..."
+                    onChangeText={(value) => updateProject(project.id, 'name', value)}
+                    onFocus={() => setActiveProjectId(project.id)}
+                  />
                 </View>
-              </View>
-              <View style={styles.cellSmall}>
-                <TouchableOpacity
-                  style={[styles.checkbox, project.bonus && styles.checkboxActive]}
-                  onPress={() => updateProject(project.id, 'bonus', !project.bonus)}
-                >
-                  {project.bonus ? <Text style={styles.checkboxText}>✓</Text> : null}
+                <TouchableOpacity style={styles.cellAction} onPress={() => removeProject(project.id)}>
+                  <Text style={styles.removeText}>×</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.cellSmall}>
-                <Text style={styles.xpText}>{project.experience ? project.experience : '-'}</Text>
+
+              <View style={styles.rowBottom}>
+                <View style={styles.mobileGroup}>
+                  <Text style={styles.labelCompact}>Mark</Text>
+                  <View style={styles.stepper}>
+                    {(() => {
+                      const numericGrade = Number(project.grade);
+                      const clampedGrade = Number.isFinite(numericGrade) ? numericGrade : 100;
+                      const atMin = clampedGrade <= 80;
+                      const atMax = clampedGrade >= 125;
+                      return (
+                        <>
+                          <TouchableOpacity
+                            style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                            onPress={() => stepGrade(project.id, -1)}
+                            disabled={atMin}
+                          >
+                            <Text style={styles.stepButtonText}>-</Text>
+                          </TouchableOpacity>
+                          <TextInput
+                            style={[styles.inputSmall, styles.gradeInput]}
+                            keyboardType="numeric"
+                            value={project.grade}
+                            onChangeText={(value) => updateProject(project.id, 'grade', value)}
+                          />
+                          <TouchableOpacity
+                            style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                            onPress={() => stepGrade(project.id, 1)}
+                            disabled={atMax}
+                          >
+                            <Text style={styles.stepButtonText}>+</Text>
+                          </TouchableOpacity>
+                        </>
+                      );
+                    })()}
+                  </View>
+                </View>
+
+                <View style={styles.mobileGroup}>
+                  <Text style={styles.labelCompact}>Bonus</Text>
+                  <TouchableOpacity
+                    style={[styles.checkbox, project.bonus && styles.checkboxActive]}
+                    onPress={() => updateProject(project.id, 'bonus', !project.bonus)}
+                  >
+                    {project.bonus ? <Text style={styles.checkboxText}>✓</Text> : null}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.mobileGroup}>
+                  <Text style={styles.labelCompact}>XP</Text>
+                  <Text style={styles.xpText}>{project.experience ? project.experience : '-'}</Text>
+                </View>
               </View>
-              <TouchableOpacity style={styles.cellAction} onPress={() => removeProject(project.id)}>
-                <Text style={styles.removeText}>×</Text>
-              </TouchableOpacity>
             </View>
+
             {activeProjectId === project.id ? (
               <View style={styles.suggestions}>
                 {searchProjects(project.name, catalog).map((entry) => (
@@ -318,12 +320,14 @@ export default function CalculatorScreen() {
             ) : null}
           </View>
         ))}
+
         <TouchableOpacity style={styles.addRowButton} onPress={addProject}>
           <Text style={styles.addRowText}>Add a project +</Text>
         </TouchableOpacity>
         {result !== null ? (
           <Text style={styles.result}>End level: {result.toFixed(2)}</Text>
         ) : null}
+
         <View style={styles.roadmapSection}>
           <Text style={styles.sectionTitle}>Roadmaps</Text>
           <View style={styles.roadmapSaveRow}>

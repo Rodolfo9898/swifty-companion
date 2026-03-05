@@ -30,6 +30,12 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       fontSize: 12,
       marginBottom: spacing.xs,
     },
+    labelCompact: {
+      color: colors.textMuted,
+      fontSize: 11,
+      marginBottom: 4,
+      textAlign: 'center',
+    },
     input: {
       backgroundColor: colors.surfaceAlt,
       color: colors.text,
@@ -66,17 +72,27 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       marginBottom: spacing.sm,
     },
     tableRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
       paddingVertical: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: spacing.sm,
     },
-    cellName: {
-      flex: 2,
+    rowTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
     },
-    cellSmall: {
+    rowBottom: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    mobileGroup: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    cellName: {
       flex: 1,
     },
     stepper: {
@@ -105,11 +121,14 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     cellAction: {
       width: 28,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     xpText: {
       color: colors.text,
       fontSize: 12,
       textAlign: 'center',
+      minWidth: 40,
+      paddingTop: 8,
     },
     inputSmall: {
       backgroundColor: colors.surfaceAlt,
@@ -123,8 +142,7 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     },
     gradeInput: {
       textAlign: 'center',
-      flex: 1,
-      minWidth: 44,
+      minWidth: 56,
     },
     addRowButton: {
       backgroundColor: colors.surfaceAlt,
@@ -141,8 +159,9 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     },
     removeText: {
       color: colors.error,
-      fontSize: 16,
+      fontSize: 20,
       fontWeight: '700',
+      lineHeight: 20,
     },
     suggestions: {
       backgroundColor: colors.surfaceAlt,
