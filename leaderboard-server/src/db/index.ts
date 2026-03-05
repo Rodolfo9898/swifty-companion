@@ -49,9 +49,23 @@ export function getDb() {
       promo TEXT,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS user_cursus (
+      user_id INTEGER NOT NULL,
+      login TEXT NOT NULL,
+      cursus_id INTEGER,
+      cursus_slug TEXT,
+      cursus_name TEXT,
+      level REAL,
+      begin_at TEXT,
+      blackholed_at TEXT,
+      promo TEXT,
+      is_primary INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    );
   `);
   if (existingColumns) {
-    const columns = db.prepare('PRAGMA table_info(users)').all().map((col: { name: string }) => col.name);
+    const columns = (db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>).map((col) => col.name);
     const addColumn = (name: string, definition: string) => {
       if (!columns.includes(name)) {
         db!.exec(`ALTER TABLE users ADD COLUMN ${name} ${definition}`);
@@ -71,6 +85,9 @@ export function getDb() {
     CREATE INDEX IF NOT EXISTS idx_users_campus ON users(campus_id);
     CREATE INDEX IF NOT EXISTS idx_users_level ON users(level);
     CREATE INDEX IF NOT EXISTS idx_users_promo ON users(promo);
+    CREATE INDEX IF NOT EXISTS idx_user_cursus_user ON user_cursus(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_cursus_login ON user_cursus(login);
+    CREATE INDEX IF NOT EXISTS idx_user_cursus_cursus ON user_cursus(cursus_id);
   `);
   return db;
 }
@@ -137,4 +154,52 @@ export function upsertUser(user: {
       updated_at = excluded.updated_at
   `);
   stmt.run(user);
+}
+
+export function replaceUserCursus(
+  userId: number,
+  login: string,
+  rows: Array<{
+    cursus_id?: number | null;
+    cursus_slug?: string | null;
+    cursus_name?: string | null;
+    level?: number | null;
+    begin_at?: string | null;
+    blackholed_at?: string | null;
+    promo?: string | null;
+    is_primary?: boolean;
+    updated_at: number;
+  }>,
+) {
+  const database = getDb();
+  const deleteStmt = database.prepare('DELETE FROM user_cursus WHERE user_id = ?');
+  const insertStmt = database.prepare(`
+    INSERT INTO user_cursus (
+      user_id, login, cursus_id, cursus_slug, cursus_name, level, begin_at,
+      blackholed_at, promo, is_primary, updated_at
+    ) VALUES (
+      @user_id, @login, @cursus_id, @cursus_slug, @cursus_name, @level, @begin_at,
+      @blackholed_at, @promo, @is_primary, @updated_at
+    )
+  `);
+
+  const tx = database.transaction(() => {
+    deleteStmt.run(userId);
+    for (const row of rows) {
+      insertStmt.run({
+        user_id: userId,
+        login,
+        cursus_id: row.cursus_id ?? null,
+        cursus_slug: row.cursus_slug ?? null,
+        cursus_name: row.cursus_name ?? null,
+        level: row.level ?? null,
+        begin_at: row.begin_at ?? null,
+        blackholed_at: row.blackholed_at ?? null,
+        promo: row.promo ?? null,
+        is_primary: row.is_primary ? 1 : 0,
+        updated_at: row.updated_at,
+      });
+    }
+  });
+  tx();
 }

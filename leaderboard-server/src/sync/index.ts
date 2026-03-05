@@ -1,5 +1,8 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { config } from '../config/index.js';
-import { getDb, upsertCampus, upsertUser } from '../db/index.js';
+import { getDb, replaceUserCursus, upsertCampus, upsertUser } from '../db/index.js';
 import {
   fetchCampuses,
   fetchCampusUsers,
@@ -18,6 +21,7 @@ type Campus = {
 type CursusEntry = {
   level?: number;
   begin_at?: string | null;
+  blackholed_at?: string | null;
   cursus?: { id?: number; slug?: string | null; name?: string | null };
 };
 
@@ -40,16 +44,16 @@ type UserProfile = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function isConfiguredCursus(entry: CursusEntry) {
+  if (config.cursusId && entry.cursus?.id === config.cursusId) return true;
+  const slug = entry.cursus?.slug?.toLowerCase() || '';
+  const name = entry.cursus?.name?.toLowerCase() || '';
+  return slug.includes('42cursus') || name.includes('42cursus');
+}
+
 function find42CursusEntry(user: UserProfile) {
   const cursusUsers = user.cursus_users || [];
-  return (
-    cursusUsers.find((entry) => {
-      if (config.cursusId && entry.cursus?.id === config.cursusId) return true;
-      const slug = entry.cursus?.slug?.toLowerCase() || '';
-      const name = entry.cursus?.name?.toLowerCase() || '';
-      return slug.includes('42cursus') || name.includes('42cursus');
-    }) || null
-  );
+  return cursusUsers.find((entry) => isConfiguredCursus(entry)) || null;
 }
 
 function extract42CursusLevel(user: UserProfile) {
@@ -74,6 +78,21 @@ function pickPrimaryCampus(user: UserProfile, fallback: Campus) {
   return primary?.campus || campusUsers[0]?.campus || fallback;
 }
 
+function mapAllCursusRows(user: UserProfile, updatedAt: number) {
+  const cursusUsers = user.cursus_users || [];
+  return cursusUsers.map((entry) => ({
+    cursus_id: entry.cursus?.id ?? null,
+    cursus_slug: entry.cursus?.slug ?? null,
+    cursus_name: entry.cursus?.name ?? null,
+    level: typeof entry.level === 'number' ? entry.level : null,
+    begin_at: entry.begin_at ?? null,
+    blackholed_at: entry.blackholed_at ?? null,
+    promo: formatPromo(entry.begin_at),
+    is_primary: isConfiguredCursus(entry),
+    updated_at: updatedAt,
+  }));
+}
+
 async function resolveCoalition(userId: number) {
   if (!config.syncCoalitions) return null;
   try {
@@ -89,11 +108,10 @@ async function syncWeeklyLogtime(db: ReturnType<typeof getDb>) {
   if (!config.syncLogtime) return;
   process.stdout.write('Sync: weekly logtime\n');
   const now = new Date();
-  const day = 24 * 60 * 60 * 1000;
   const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const dayOfWeek = monday.getUTCDay() || 7;
   monday.setUTCDate(monday.getUTCDate() - (dayOfWeek - 1));
-  const sunday = new Date(monday.getTime() + 7 * day);
+  const sunday = new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const params: Record<string, string> = {
     'range[begin_at]': `${monday.toISOString()},${sunday.toISOString()}`,
@@ -197,6 +215,10 @@ async function syncCampusUsers(campus: Campus) {
         }
         await sleep(120);
       }
+
+      const allCursusRows = mapAllCursusRows(full, now);
+      replaceUserCursus(entry.id, entry.login, allCursusRows);
+
       if (level === null) continue;
 
       const cursusEntry = find42CursusEntry(full);
@@ -247,7 +269,13 @@ export async function syncAll() {
   }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('sync.ts')) {
+const currentFile = fileURLToPath(import.meta.url);
+const argvFile = process.argv[1] ? path.resolve(process.argv[1]) : '';
+const isDirectRun =
+  argvFile === path.resolve(currentFile) ||
+  argvFile.endsWith(`${path.sep}src${path.sep}sync${path.sep}index.ts`);
+
+if (isDirectRun) {
   syncAll()
     .then(() => {
       process.stdout.write('Sync completed.\n');

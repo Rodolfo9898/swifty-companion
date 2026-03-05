@@ -16,6 +16,46 @@ app.get('/campuses', (req, res) => {
   res.json(rows);
 });
 
+app.get('/cursus', (req, res) => {
+  const rows = db.prepare(`
+    SELECT
+      cursus_id as id,
+      cursus_slug as slug,
+      cursus_name as name,
+      COUNT(DISTINCT user_id) as users,
+      MAX(updated_at) as updatedAt
+    FROM user_cursus
+    WHERE cursus_id IS NOT NULL
+    GROUP BY cursus_id, cursus_slug, cursus_name
+    ORDER BY users DESC, name ASC
+  `).all();
+  res.json(rows);
+});
+
+app.get('/users/:login/cursus', (req, res) => {
+  const login = String(req.params.login ?? '').trim().toLowerCase();
+  if (!login) {
+    res.status(400).json({ error: 'Missing login' });
+    return;
+  }
+  const rows = db.prepare(`
+    SELECT
+      cursus_id as id,
+      cursus_slug as slug,
+      cursus_name as name,
+      level,
+      begin_at as beginAt,
+      blackholed_at as blackholedAt,
+      promo,
+      is_primary as isPrimary,
+      updated_at as updatedAt
+    FROM user_cursus
+    WHERE lower(login) = ?
+    ORDER BY is_primary DESC, level DESC, name ASC
+  `).all(login);
+  res.json(rows);
+});
+
 app.get('/leaderboard', (req, res) => {
   const campusId = Number(req.query.campusId ?? 0);
   const promo = String(req.query.promo ?? '');
@@ -157,19 +197,21 @@ app.get('/promos', (req, res) => {
     ${where}
     ORDER BY promo DESC
   `);
-  const rows = campusId ? stmt.all(campusId) : stmt.all();
-  res.json(rows.map((row: { promo: string }) => row.promo));
+  const rows = (campusId ? stmt.all(campusId) : stmt.all()) as Array<{ promo: string }>;
+  res.json(rows.map((row) => row.promo));
 });
 
 app.get('/status', (req, res) => {
   const users = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   const campuses = db.prepare('SELECT COUNT(*) as count FROM campuses').get() as { count: number };
+  const cursusRows = db.prepare('SELECT COUNT(*) as count FROM user_cursus').get() as { count: number };
   const lastUserUpdate = db.prepare('SELECT MAX(updated_at) as updated_at FROM users').get() as {
     updated_at?: number;
   };
   res.json({
     users: users.count,
     campuses: campuses.count,
+    userCursusRows: cursusRows.count,
     lastUserUpdate: lastUserUpdate.updated_at ?? null,
   });
 });
