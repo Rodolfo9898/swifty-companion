@@ -210,17 +210,26 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     firstCard: {
       marginTop: spacing.sm,
     },
+    identityColumn: {
+      width: 44,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      gap: 6,
+    },
+    infoBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
     rank: {
       color: colors.textMuted,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
-      width: 46,
-      textAlign: 'right',
+      textAlign: 'center',
     },
     avatar: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
+      width: 30,
+      height: 30,
+      borderRadius: 9,
       backgroundColor: colors.surfaceAlt,
     },
     login: {

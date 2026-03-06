@@ -761,13 +761,15 @@ export default function LeaderboardScreen({ navigation }: Props) {
               navigation.navigate('Search', { initialLogin: user.login })
             }
           >
-            <Text style={styles.rank}>{rank}</Text>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
-            ) : (
-              <Image source={require('../../../assets/logo.png')} style={styles.avatar} />
-            )}
-            <View>
+            <View style={styles.identityColumn}>
+              <Text style={styles.rank}>{rank}</Text>
+              {avatar ? (
+                <Image source={{ uri: avatar }} style={styles.avatar} />
+              ) : (
+                <Image source={require('../../../assets/logo.png')} style={styles.avatar} />
+              )}
+            </View>
+            <View style={styles.infoBlock}>
               <Text style={styles.login}>{user.login}</Text>
               {shownFields.displayname ? (
                 <Text style={styles.display}>{user.displayname ?? 'Unknown'}</Text>
@@ -825,13 +827,15 @@ export default function LeaderboardScreen({ navigation }: Props) {
             }}
             onPress={() => navigation.navigate('Search', { initialLogin: entry.login })}
           >
-            <Text style={styles.rank}>{rank}</Text>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
-            ) : (
-              <Image source={require('../../../assets/logo.png')} style={styles.avatar} />
-            )}
-            <View>
+            <View style={styles.identityColumn}>
+              <Text style={styles.rank}>{rank}</Text>
+              {avatar ? (
+                <Image source={{ uri: avatar }} style={styles.avatar} />
+              ) : (
+                <Image source={require('../../../assets/logo.png')} style={styles.avatar} />
+              )}
+            </View>
+            <View style={styles.infoBlock}>
               <Text style={styles.login}>{entry.login}</Text>
               {shownFields.displayname ? (
                 <Text style={styles.display}>{entry.displayname ?? 'Unknown'}</Text>
