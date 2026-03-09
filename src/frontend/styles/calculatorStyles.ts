@@ -33,8 +33,9 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     labelCompact: {
       color: colors.textMuted,
       fontSize: 11,
-      marginBottom: 4,
+      marginBottom: 6,
       textAlign: 'center',
+      width: '100%',
     },
     input: {
       backgroundColor: colors.surfaceAlt,
@@ -73,6 +74,7 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     },
     tableRow: {
       paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xs,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: spacing.sm,
@@ -82,14 +84,37 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.sm,
     },
+    rowDragging: {
+      opacity: 0.9,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 12,
+      paddingHorizontal: spacing.xs,
+    },
     rowBottom: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: spacing.sm,
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.xs,
     },
     mobileGroup: {
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+    },
+    markGroup: {
+      flex: 0,
+      width: 132,
+      alignItems: 'flex-start',
+    },
+    bonusGroup: {
       flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+    },
+    xpGroup: {
+      flex: 0,
+      width: 56,
       alignItems: 'center',
     },
     cellName: {
@@ -101,7 +126,7 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       gap: spacing.xs,
     },
     stepButton: {
-      width: 24,
+      width: 28,
       height: 32,
       borderRadius: 8,
       borderWidth: 1,
@@ -115,8 +140,25 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     },
     stepButtonText: {
       color: colors.text,
-      fontSize: 14,
+      fontSize: 16,
+      lineHeight: 18,
       fontWeight: '700',
+    },
+    dragHandle: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dragHandleText: {
+      color: colors.textMuted,
+      fontWeight: '700',
+      fontSize: 14,
+      lineHeight: 14,
     },
     cellAction: {
       width: 28,
@@ -129,6 +171,7 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       textAlign: 'center',
       minWidth: 40,
       paddingTop: 8,
+      lineHeight: 16,
     },
     inputSmall: {
       backgroundColor: colors.surfaceAlt,
@@ -183,6 +226,9 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       color: colors.text,
       fontSize: 14,
       fontWeight: '600',
+    },
+    projectsList: {
+      gap: 0,
     },
     roadmapSection: {
       marginTop: spacing.lg,
@@ -275,6 +321,7 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     checkbox: {
       width: 20,
       height: 20,
+      marginTop: 6,
       borderRadius: 4,
       borderWidth: 1,
       borderColor: colors.border,
