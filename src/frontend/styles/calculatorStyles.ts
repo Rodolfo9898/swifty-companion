@@ -247,6 +247,17 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '600',
     },
+    roadmapOverrideButton: {
+      backgroundColor: '#facc15',
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    roadmapOverrideText: {
+      color: '#1f2937',
+      fontSize: 12,
+      fontWeight: '700',
+    },
     roadmapDeleteText: {
       color: colors.error,
       fontSize: 12,

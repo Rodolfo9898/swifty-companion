@@ -184,6 +184,20 @@ export default function CalculatorScreen() {
     await writeCalculatorRoadmaps(next);
   };
 
+  const overrideRoadmap = async (name: string) => {
+    const normalizedProjects = normalizeProjects(projects);
+    const next = [...savedRoadmaps];
+    const index = next.findIndex((entry) => entry.name === name);
+    if (index < 0) return;
+    next[index] = {
+      ...next[index],
+      projects: normalizedProjects,
+      updatedAt: Date.now(),
+    };
+    setSavedRoadmaps(next);
+    await writeCalculatorRoadmaps(next);
+  };
+
   const result = useMemo(() => {
     const currentLevel = Number(level);
     if (
@@ -359,6 +373,9 @@ export default function CalculatorScreen() {
                     <View style={styles.roadmapActions}>
                       <TouchableOpacity onPress={() => loadRoadmap(entry)}>
                         <Text style={styles.roadmapActionText}>Load</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.roadmapOverrideButton} onPress={() => overrideRoadmap(entry.name)}>
+                        <Text style={styles.roadmapOverrideText}>Override</Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => deleteRoadmap(entry.name)}>
                         <Text style={styles.roadmapDeleteText}>Delete</Text>

@@ -51,6 +51,8 @@ export default function createPlannerStyles(colors: ThemeColors) {
       color: colors.text,
       fontWeight: '600',
       fontSize: 12,
+      textAlign: 'center',
+      width: '100%',
     },
     tabTextCompact: {
       fontSize: 11,
