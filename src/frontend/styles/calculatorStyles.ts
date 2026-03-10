@@ -348,10 +348,37 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       color: colors.accentText,
       fontWeight: '700',
     },
-    result: {
+    resultRow: {
       marginTop: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    resultMeta: {
+      flex: 1,
+    },
+    result: {
       color: colors.text,
       fontSize: 22,
+      fontWeight: '700',
+    },
+    resultHint: {
+      marginTop: 2,
+      color: colors.textMuted,
+      fontSize: 12,
+    },
+    progressButton: {
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    progressButtonText: {
+      color: colors.text,
+      fontSize: 12,
       fontWeight: '700',
     },
     hint: {

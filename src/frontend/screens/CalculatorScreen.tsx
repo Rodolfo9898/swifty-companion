@@ -1,30 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth } from '../AuthContext';
 import { readCalculatorRoadmaps, writeCalculatorRoadmaps } from '../utils/appCache';
 import createCalculatorStyles from '../styles/calculatorStyles';
 import { getProjectCatalog, searchProjects } from '../utils/projectCatalog';
 import { useTheme } from '../ThemeContext';
+import type { RootStackParamList } from '../AppRoot';
+import {
+  buildProgressSeries,
+  getPrimaryLevel,
+  levelToTotalXp,
+  type XpProjectEntry,
+} from '../utils/xpProgress';
 
-const XP_REQUIRED = [
-  0, 462, 2688, 5885, 11777, 29217, 46255, 63559, 74340, 85483, 95000, 105630, 124446, 145782, 169932, 197316, 228354, 263508, 303366, 348516,
-  399672, 457632, 523320, 597786, 682164, 777756, 886074, 1008798, 1147902, 1305486, 1484070,
-];
+type ProjectEntry = XpProjectEntry;
 
-function getPrimaryLevel(levels: Array<{ level: number }> | undefined) {
-  if (!levels || levels.length === 0) return 0;
-  return Math.max(...levels.map((entry) => entry.level));
-}
-
-type ProjectEntry = {
-  id: string;
-  name: string;
-  experience: number;
-  grade: string;
-  bonus: boolean;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'Calculator'>;
 
 type RoadmapEntry = {
   name: string;
@@ -32,7 +26,7 @@ type RoadmapEntry = {
   updatedAt: number;
 };
 
-export default function CalculatorScreen() {
+export default function CalculatorScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createCalculatorStyles(colors), [colors]);
   const { user } = useAuth();
@@ -188,35 +182,26 @@ export default function CalculatorScreen() {
     await writeCalculatorRoadmaps(next);
   };
 
+  const progressSeries = useMemo(() => buildProgressSeries(level, projects), [level, projects]);
+
   const result = useMemo(() => {
-    const currentLevel = Number(level);
-    if (Number.isNaN(currentLevel) || currentLevel < 0 || projects.length === 0) {
-      return null;
-    }
+    const finalCheckpoint = progressSeries[progressSeries.length - 1];
+    return finalCheckpoint ? finalCheckpoint.level : null;
+  }, [progressSeries]);
 
-    const currentLevelFloor = Math.floor(currentLevel);
-    const baseXp = XP_REQUIRED[currentLevelFloor] ?? XP_REQUIRED[XP_REQUIRED.length - 1];
-    const nextXp = XP_REQUIRED[currentLevelFloor + 1] ?? baseXp;
-    const progressIntoLevel = (currentLevel - currentLevelFloor) * (nextXp - baseXp);
-    const totalXp = baseXp + progressIntoLevel;
-    const earnedXp = projects.reduce((sum, project) => {
-      const xpValue = project.experience;
-      const gradeValue = Number(project.grade);
-      if (Number.isNaN(gradeValue) || xpValue <= 0) return sum;
-      const bonusMultiplier = project.bonus ? 1.042 : 1;
-      return sum + (gradeValue / 100) * xpValue * bonusMultiplier;
-    }, 0);
-    const finalXp = totalXp + earnedXp;
+  const projectedXpGain = useMemo(() => {
+    const startXp = levelToTotalXp(level);
+    const finalCheckpoint = progressSeries[progressSeries.length - 1];
+    if (!finalCheckpoint) return 0;
+    return Math.max(0, finalCheckpoint.totalXp - startXp);
+  }, [level, progressSeries]);
 
-    let newLevel = 0;
-    while (XP_REQUIRED[newLevel + 1] !== undefined && XP_REQUIRED[newLevel + 1] <= finalXp) {
-      newLevel += 1;
-    }
-    const rangeStart = XP_REQUIRED[newLevel] ?? 0;
-    const rangeEnd = XP_REQUIRED[newLevel + 1] ?? rangeStart + 1;
-    const fraction = (finalXp - rangeStart) / (rangeEnd - rangeStart);
-    return newLevel + Math.max(0, Math.min(1, fraction));
-  }, [level, projects]);
+  const openProgressGraph = () => {
+    navigation.navigate('CalculatorProgress', {
+      baseLevel: level,
+      projects,
+    });
+  };
 
   const renderProjectItem = useCallback(
     ({ item: project, drag, isActive }: RenderItemParams<ProjectEntry>) => (
@@ -341,7 +326,17 @@ export default function CalculatorScreen() {
         <TouchableOpacity style={styles.addRowButton} onPress={addProject}>
           <Text style={styles.addRowText}>Add a project +</Text>
         </TouchableOpacity>
-        {result !== null ? <Text style={styles.result}>End level: {result.toFixed(2)}</Text> : null}
+        {result !== null ? (
+          <View style={styles.resultRow}>
+            <View style={styles.resultMeta}>
+              <Text style={styles.result}>End level: {result.toFixed(2)}</Text>
+              <Text style={styles.resultHint}>Projected gain: +{Math.round(projectedXpGain)} XP</Text>
+            </View>
+            <TouchableOpacity style={styles.progressButton} onPress={openProgressGraph}>
+              <Text style={styles.progressButtonText}>Overview</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         <View style={styles.roadmapSection}>
           <Text style={styles.sectionTitle}>Roadmaps</Text>

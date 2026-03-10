@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import BonusScreen from './screens/BonusScreen';
 import CalculatorScreen from './screens/CalculatorScreen';
+import CalculatorProgressScreen from './screens/CalculatorProgressScreen';
 import DevCacheScreen from './screens/DevCacheScreen';
 import HomeScreen from './screens/HomeScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
@@ -27,6 +28,16 @@ export type RootStackParamList = {
   Bonus: undefined;
   Leaderboard: undefined;
   Calculator: undefined;
+  CalculatorProgress: {
+    baseLevel: number;
+    projects: Array<{
+      id: string;
+      name: string;
+      experience: number;
+      grade: string;
+      bonus: boolean;
+    }>;
+  };
   Planner: undefined;
   DevCache: undefined;
 };
@@ -141,6 +152,21 @@ function AppNavigator() {
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
                       <Text style={styles.headerText}>XP Calculator</Text>
+                    </View>
+                  </View>
+                ),
+                headerRight: headerActions,
+              }}
+            />
+            <Stack.Screen
+              name="CalculatorProgress"
+              component={CalculatorProgressScreen}
+              options={{
+                headerTitle: () => (
+                  <View style={styles.headerTitle}>
+                    <View style={styles.headerTitleRow}>
+                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
+                      <Text style={styles.headerText}>Progress Graph</Text>
                     </View>
                   </View>
                 ),
