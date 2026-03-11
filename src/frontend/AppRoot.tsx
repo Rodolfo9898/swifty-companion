@@ -15,6 +15,7 @@ import LoginScreen from './screens/LoginScreen';
 import PlannerScreen from './screens/PlannerScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SearchScreen from './screens/SearchScreen';
+import TranscriptWebScreen from './screens/TranscriptWebScreen';
 import type { FortyTwoUser } from './types/fortyTwo';
 import createAppRootStyles from './styles/appRootStyles';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -37,6 +38,12 @@ export type RootStackParamList = {
       grade: string;
       bonus: boolean;
     }>;
+  };
+  TranscriptWeb: {
+    userId: number;
+    startYear: number;
+    endYear: number;
+    templateId: number;
   };
   Planner: undefined;
   DevCache: undefined;
@@ -197,6 +204,21 @@ function AppNavigator() {
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
                       <Text style={styles.headerText}>Quick Access</Text>
+                    </View>
+                  </View>
+                ),
+                headerRight: headerActions,
+              }}
+            />
+            <Stack.Screen
+              name="TranscriptWeb"
+              component={TranscriptWebScreen}
+              options={{
+                headerTitle: () => (
+                  <View style={styles.headerTitle}>
+                    <View style={styles.headerTitleRow}>
+                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
+                      <Text style={styles.headerText}>Transcript Web</Text>
                     </View>
                   </View>
                 ),
