@@ -62,6 +62,8 @@ export default function CalculatorScreen({ navigation }: Props) {
   const [roadmapName, setRoadmapName] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedRoadmaps, setSavedRoadmaps] = useState<RoadmapEntry[]>([]);
+  const [renamingRoadmap, setRenamingRoadmap] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
 
   useEffect(() => {
     let isActive = true;
@@ -168,6 +170,11 @@ export default function CalculatorScreen({ navigation }: Props) {
 
   const deleteRoadmap = async (name: string) => {
     const next = savedRoadmaps.filter((entry) => entry.name !== name);
+    if (renamingRoadmap === name) {
+      setRenamingRoadmap(null);
+      setRenameDraft('');
+      setSaveError(null);
+    }
     setSavedRoadmaps(next);
     await writeCalculatorRoadmaps(next);
   };
@@ -179,6 +186,42 @@ export default function CalculatorScreen({ navigation }: Props) {
     if (index < 0) return;
     next[index] = { ...next[index], projects: normalized, updatedAt: Date.now() };
     setSavedRoadmaps(next);
+    await writeCalculatorRoadmaps(next);
+  };
+
+  const startRenameRoadmap = (name: string) => {
+    setRenamingRoadmap(name);
+    setRenameDraft(name);
+    setSaveError(null);
+  };
+
+  const cancelRenameRoadmap = () => {
+    setRenamingRoadmap(null);
+    setRenameDraft('');
+    setSaveError(null);
+  };
+
+  const applyRenameRoadmap = async (name: string) => {
+    const trimmed = renameDraft.trim();
+    if (!trimmed) {
+      setSaveError('Give this roadmap a name to rename it.');
+      return;
+    }
+    const duplicate = savedRoadmaps.some(
+      (entry) => entry.name !== name && entry.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (duplicate) {
+      setSaveError('A roadmap with this name already exists.');
+      return;
+    }
+    const next = [...savedRoadmaps];
+    const index = next.findIndex((entry) => entry.name === name);
+    if (index < 0) return;
+    next[index] = { ...next[index], name: trimmed, updatedAt: Date.now() };
+    setSavedRoadmaps(next);
+    setRenamingRoadmap(null);
+    setRenameDraft('');
+    setSaveError(null);
     await writeCalculatorRoadmaps(next);
   };
 
@@ -363,7 +406,16 @@ export default function CalculatorScreen({ navigation }: Props) {
                 return (
                   <View key={entry.name} style={styles.roadmapItem}>
                     <View style={styles.cellName}>
-                      <Text style={styles.roadmapName}>{entry.name}</Text>
+                      {renamingRoadmap === entry.name ? (
+                        <TextInput
+                          style={styles.roadmapRenameInput}
+                          value={renameDraft}
+                          placeholder="Roadmap name"
+                          onChangeText={setRenameDraft}
+                        />
+                      ) : (
+                        <Text style={styles.roadmapName}>{entry.name}</Text>
+                      )}
                       <Text style={styles.roadmapMeta}>{label} | {dateLabel}</Text>
                     </View>
                     <View style={styles.roadmapActions}>
@@ -373,6 +425,20 @@ export default function CalculatorScreen({ navigation }: Props) {
                       <TouchableOpacity style={styles.roadmapOverrideButton} onPress={() => overrideRoadmap(entry.name)}>
                         <Text style={styles.roadmapOverrideText}>Override</Text>
                       </TouchableOpacity>
+                      {renamingRoadmap === entry.name ? (
+                        <>
+                          <TouchableOpacity onPress={() => applyRenameRoadmap(entry.name)}>
+                            <Text style={styles.roadmapActionText}>Save</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={cancelRenameRoadmap}>
+                            <Text style={styles.roadmapDeleteText}>Cancel</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <TouchableOpacity onPress={() => startRenameRoadmap(entry.name)}>
+                          <Text style={styles.roadmapActionText}>Rename</Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity onPress={() => deleteRoadmap(entry.name)}>
                         <Text style={styles.roadmapDeleteText}>Delete</Text>
                       </TouchableOpacity>

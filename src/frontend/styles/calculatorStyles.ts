@@ -278,6 +278,18 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       fontWeight: '600',
       flex: 1,
     },
+    roadmapRenameInput: {
+      backgroundColor: colors.surfaceAlt,
+      color: colors.text,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      fontSize: 12,
+      minWidth: 120,
+      maxWidth: 180,
+    },
     roadmapMeta: {
       color: colors.textMuted,
       fontSize: 11,
