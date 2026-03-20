@@ -125,7 +125,45 @@ export function upsertUser(user: {
   updated_at: number;
 }) {
   const database = getDb();
-  const stmt = database.prepare(`
+  const updateByIdStmt = database.prepare(`
+    UPDATE users SET
+      login = @login,
+      displayname = @displayname,
+      title = @title,
+      image_url = @image_url,
+      campus_id = @campus_id,
+      campus_name = @campus_name,
+      level = @level,
+      weekly_logtime = @weekly_logtime,
+      correction_points = @correction_points,
+      wallets = @wallets,
+      blackholed_at = @blackholed_at,
+      coalition_name = @coalition_name,
+      begin_at = @begin_at,
+      promo = @promo,
+      updated_at = @updated_at
+    WHERE id = @id
+  `);
+  const updateByLoginStmt = database.prepare(`
+    UPDATE users SET
+      id = @id,
+      displayname = @displayname,
+      title = @title,
+      image_url = @image_url,
+      campus_id = @campus_id,
+      campus_name = @campus_name,
+      level = @level,
+      weekly_logtime = @weekly_logtime,
+      correction_points = @correction_points,
+      wallets = @wallets,
+      blackholed_at = @blackholed_at,
+      coalition_name = @coalition_name,
+      begin_at = @begin_at,
+      promo = @promo,
+      updated_at = @updated_at
+    WHERE login = @login
+  `);
+  const insertStmt = database.prepare(`
     INSERT INTO users (
       id, login, displayname, title, image_url, campus_id, campus_name,
       level, weekly_logtime, correction_points, wallets, blackholed_at,
@@ -136,24 +174,15 @@ export function upsertUser(user: {
       @level, @weekly_logtime, @correction_points, @wallets, @blackholed_at,
       @coalition_name, @begin_at, @promo, @updated_at
     )
-    ON CONFLICT(id) DO UPDATE SET
-      login = excluded.login,
-      displayname = excluded.displayname,
-      title = excluded.title,
-      image_url = excluded.image_url,
-      campus_id = excluded.campus_id,
-      campus_name = excluded.campus_name,
-      level = excluded.level,
-      weekly_logtime = excluded.weekly_logtime,
-      correction_points = excluded.correction_points,
-      wallets = excluded.wallets,
-      blackholed_at = excluded.blackholed_at,
-      coalition_name = excluded.coalition_name,
-      begin_at = excluded.begin_at,
-      promo = excluded.promo,
-      updated_at = excluded.updated_at
   `);
-  stmt.run(user);
+  const tx = database.transaction(() => {
+    const byId = updateByIdStmt.run(user);
+    if (byId.changes > 0) return;
+    const byLogin = updateByLoginStmt.run(user);
+    if (byLogin.changes > 0) return;
+    insertStmt.run(user);
+  });
+  tx();
 }
 
 export function replaceUserCursus(
