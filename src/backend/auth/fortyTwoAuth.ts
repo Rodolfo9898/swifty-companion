@@ -1,6 +1,7 @@
 import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
 
+import { readLocalRuntimeSettings } from '../../frontend/utils/localSettings';
 import { scheduleTokenRefresh } from '../bonus/tokenRefresh';
 import { AuthState, clearAuthState, getCachedAuthState, loadAuthState, saveAuthState } from './authStore';
 
@@ -20,10 +21,17 @@ const REDIRECT_URI = 'swifty-companion://redirect';
 const isExpoGo = Constants.appOwnership === 'expo';
 const useProxy = isExpoGo && Boolean(proxyRedirectUri);
 
-function requireCredentials() {
-  if (!clientId || !clientSecret) {
+async function getClientSecret() {
+  const settings = await readLocalRuntimeSettings();
+  return settings.ftClientSecret.trim() || clientSecret || '';
+}
+
+async function requireCredentials() {
+  const resolvedClientSecret = await getClientSecret();
+  if (!clientId || !resolvedClientSecret) {
     throw new Error('Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.');
   }
+  return resolvedClientSecret;
 }
 
 function isTokenFresh(state: AuthState | null) {
@@ -43,11 +51,11 @@ function getRedirectUri() {
 }
 
 async function exchangeToken(params: Record<string, string>): Promise<AuthState> {
-  requireCredentials();
+  const resolvedClientSecret = await requireCredentials();
 
   const body = new URLSearchParams({
     client_id: clientId!,
-    client_secret: clientSecret!,
+    client_secret: resolvedClientSecret,
     ...params,
   });
 
@@ -90,7 +98,7 @@ async function exchangeToken(params: Record<string, string>): Promise<AuthState>
 }
 
 export async function loginWith42(): Promise<AuthState> {
-  requireCredentials();
+  await requireCredentials();
   const redirectUri = getRedirectUri();
   const discovery = {
     authorizationEndpoint: AUTH_ENDPOINT,

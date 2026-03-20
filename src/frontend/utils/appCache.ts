@@ -8,6 +8,8 @@ const CALCULATOR_CACHE = `${CACHE_DIR}calculator-roadmaps.json`;
 const PLANNER_CACHE = `${CACHE_DIR}planner.json`;
 const LEADERBOARD_CACHE = `${CACHE_DIR}leaderboard.json`;
 const LEADERBOARD_RANKING_CACHE = `${CACHE_DIR}leaderboard-ranking.json`;
+const LOCAL_SETTINGS_CACHE = `${CACHE_DIR}local-settings.json`;
+const LOCAL_LEADERBOARD_SNAPSHOT_CACHE = `${CACHE_DIR}leaderboard-snapshot.json`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -142,6 +144,38 @@ export async function writeLeaderboardRanking(data: unknown) {
   await FileSystem.writeAsStringAsync(LEADERBOARD_RANKING_CACHE, JSON.stringify(data));
 }
 
+export async function readLocalSettingsCache<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(LOCAL_SETTINGS_CACHE);
+    if (!info.exists) return {} as T;
+    const content = await FileSystem.readAsStringAsync(LOCAL_SETTINGS_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return {} as T;
+  }
+}
+
+export async function writeLocalSettingsCache(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(LOCAL_SETTINGS_CACHE, JSON.stringify(data));
+}
+
+export async function readLocalLeaderboardSnapshotCache<T>() {
+  try {
+    const info = await FileSystem.getInfoAsync(LOCAL_LEADERBOARD_SNAPSHOT_CACHE);
+    if (!info.exists) return null;
+    const content = await FileSystem.readAsStringAsync(LOCAL_LEADERBOARD_SNAPSHOT_CACHE);
+    return JSON.parse(content) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeLocalLeaderboardSnapshotCache(data: unknown) {
+  await ensureCacheDir();
+  await FileSystem.writeAsStringAsync(LOCAL_LEADERBOARD_SNAPSHOT_CACHE, JSON.stringify(data));
+}
+
 export function getCachePaths() {
   return {
     dir: CACHE_DIR,
@@ -151,6 +185,8 @@ export function getCachePaths() {
     planner: PLANNER_CACHE,
     leaderboard: LEADERBOARD_CACHE,
     leaderboardRanking: LEADERBOARD_RANKING_CACHE,
+    localSettings: LOCAL_SETTINGS_CACHE,
+    localLeaderboardSnapshot: LOCAL_LEADERBOARD_SNAPSHOT_CACHE,
     meta: META_CACHE,
   };
 }

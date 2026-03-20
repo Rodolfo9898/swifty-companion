@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { FortyTwoTokenResponse, FortyTwoUser } from '../../frontend/types/fortyTwo';
+import { readLocalRuntimeSettings } from '../../frontend/utils/localSettings';
 import { getRefreshLeadTime, scheduleTokenRefresh, setRefreshLeadTime } from '../bonus/tokenRefresh';
 
 const { apiBaseUrl, clientId, clientSecret } = (Constants.expoConfig?.extra ?? {}) as {
@@ -24,14 +25,16 @@ function isTokenValid(token: TokenCache | null) {
 }
 
 async function requestNewToken(): Promise<string> {
-  if (!clientId || !clientSecret) {
+  const settings = await readLocalRuntimeSettings();
+  const resolvedClientSecret = settings.ftClientSecret.trim() || clientSecret;
+  if (!clientId || !resolvedClientSecret) {
     throw new Error('Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.');
   }
 
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: clientId,
-    client_secret: clientSecret,
+    client_secret: resolvedClientSecret,
   });
 
   const response = await fetch(`${API_BASE}/oauth/token`, {

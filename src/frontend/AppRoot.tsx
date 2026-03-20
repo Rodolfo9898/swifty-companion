@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import BonusScreen from './screens/BonusScreen';
+import BonusSettingsScreen from './screens/BonusSettingsScreen';
 import CalculatorScreen from './screens/CalculatorScreen';
 import CalculatorProgressScreen from './screens/CalculatorProgressScreen';
 import DevCacheScreen from './screens/DevCacheScreen';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   Search: { initialLogin?: string; autoSearch?: boolean } | undefined;
   Profile: { login: string; initialProfile?: FortyTwoUser };
   Bonus: undefined;
+  BonusSettings: undefined;
   Leaderboard: undefined;
   Calculator: undefined;
   CalculatorProgress: {
@@ -204,6 +206,21 @@ function AppNavigator() {
                     <View style={styles.headerTitleRow}>
                       <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
                       <Text style={styles.headerText}>Quick Access</Text>
+                    </View>
+                  </View>
+                ),
+                headerRight: headerActions,
+              }}
+            />
+            <Stack.Screen
+              name="BonusSettings"
+              component={BonusSettingsScreen}
+              options={{
+                headerTitle: () => (
+                  <View style={styles.headerTitle}>
+                    <View style={styles.headerTitleRow}>
+                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
+                      <Text style={styles.headerText}>Local Settings</Text>
                     </View>
                   </View>
                 ),

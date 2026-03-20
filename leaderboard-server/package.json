@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/server/index.ts",
-    "sync": "tsx src/sync/index.ts"
+    "sync": "tsx src/sync/index.ts",
+    "export-snapshot": "tsx src/tools/exportSnapshot.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

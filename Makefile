@@ -1,6 +1,6 @@
 APP_DIR := .
 
-.PHONY: install start android ios run-android run-ios web leaderboard leaderboard-sync dev devsync clean
+.PHONY: install start android ios run-android run-ios web leaderboard leaderboard-sync leaderboard-export-snapshot dev devsync clean
 
 install:
 	cd $(APP_DIR) && npm install
@@ -28,6 +28,9 @@ leaderboard:
 
 leaderboard-sync:
 	cd $(APP_DIR)/leaderboard-server && npm install && npm run sync
+
+leaderboard-export-snapshot:
+	cd $(APP_DIR)/leaderboard-server && npm install && npm run export-snapshot
 
 dev:
 	cd $(APP_DIR)/leaderboard-server && npm install && npm run start &

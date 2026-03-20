@@ -1,4 +1,11 @@
 import Constants from 'expo-constants';
+import {
+  getLocalLeaderboardCampuses,
+  getLocalLeaderboardPage,
+  getLocalLeaderboardPromos,
+  getLocalLeaderboardStatus,
+  getLocalLeaderboardTop,
+} from '../../frontend/utils/localLeaderboardSnapshot';
 
 const extra = (Constants.expoConfig?.extra ??
   (Constants as { manifest?: { extra?: Record<string, unknown> } }).manifest?.extra ??
@@ -59,10 +66,13 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export function isLeaderboardApiEnabled() {
-  return Boolean(leaderboardApiUrl);
+  return true;
 }
 
 export async function fetchLeaderboardCampuses() {
+  if (!leaderboardApiUrl) {
+    return getLocalLeaderboardCampuses();
+  }
   return request<LeaderboardCampus[]>('/campuses');
 }
 
@@ -76,6 +86,9 @@ export async function fetchLeaderboardPage(params: {
   sort?: 'asc' | 'desc';
   meLogin?: string;
 }) {
+  if (!leaderboardApiUrl) {
+    return getLocalLeaderboardPage(params);
+  }
   const search = new URLSearchParams();
   if (params.campusId) search.set('campusId', String(params.campusId));
   if (params.promo) search.set('promo', params.promo);
@@ -89,6 +102,9 @@ export async function fetchLeaderboardPage(params: {
 }
 
 export async function fetchLeaderboardTop(params: { campusId?: number; promo?: string; limit?: number; excludeLogin?: string }) {
+  if (!leaderboardApiUrl) {
+    return getLocalLeaderboardTop(params);
+  }
   const search = new URLSearchParams();
   if (params.campusId) search.set('campusId', String(params.campusId));
   if (params.promo) search.set('promo', params.promo);
@@ -98,7 +114,22 @@ export async function fetchLeaderboardTop(params: { campusId?: number; promo?: s
 }
 
 export async function fetchLeaderboardPromos(params: { campusId?: number }) {
+  if (!leaderboardApiUrl) {
+    return getLocalLeaderboardPromos(params);
+  }
   const search = new URLSearchParams();
   if (params.campusId) search.set('campusId', String(params.campusId));
   return request<string[]>(`/promos?${search.toString()}`);
+}
+
+export async function fetchLeaderboardStatus() {
+  if (!leaderboardApiUrl) {
+    return getLocalLeaderboardStatus();
+  }
+  return request<{
+    users: number;
+    campuses: number;
+    userCursusRows: number;
+    lastUserUpdate: number | null;
+  }>('/status');
 }

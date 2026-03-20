@@ -13,6 +13,23 @@ Target setup:
 - App reads leaderboard directly from on-device storage/database.
 - App works on 5G/Wi-Fi anywhere, even if your computer is off.
 
+## Implemented Local Snapshot Flow
+
+1. Sync leaderboard DB on your machine:
+```sh
+make leaderboard-sync
+```
+2. Export bundled mobile snapshot:
+```sh
+make leaderboard-export-snapshot
+```
+3. Start app (`make run-android` / `make run-ios` / macOS target):
+- If `LEADERBOARD_API_URL` is set, app uses backend API.
+- If `LEADERBOARD_API_URL` is not set, app uses the seeded local snapshot.
+
+Snapshot file location:
+- `src/frontend/data/leaderboard_snapshot.json`
+
 ## What Must Change (Offline Snapshot Only)
 
 ### 1. Data source inside app

@@ -26,6 +26,11 @@ make leaderboard
 make leaderboard-sync
 ```
 
+4. Export app snapshot for offline/local leaderboard mode:
+```sh
+make leaderboard-export-snapshot
+```
+
 ## API Endpoints
 
 - `GET /campuses`

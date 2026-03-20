@@ -267,6 +267,15 @@ export default function BonusScreen() {
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Important links</Text>
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => {
+            // @ts-expect-error route typed in RootStackParamList
+            navigation.navigate('BonusSettings');
+          }}
+        >
+          <Text style={styles.linkTitle}>Local sync settings</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.linkButton} onPress={handleOpenIntranet}>
           <Text style={styles.linkTitle}>Open intranet profile</Text>
         </TouchableOpacity>
