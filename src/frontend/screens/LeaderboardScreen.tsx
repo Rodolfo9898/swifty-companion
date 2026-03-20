@@ -178,7 +178,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
   }));
   const useBackend = isLeaderboardApiEnabled();
   const scrollRef = useRef<ScrollView | null>(null);
-  const highlightYRef = useRef<number | null>(null);
+  const rowYByLoginRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     const loadCampuses = async () => {
@@ -368,10 +368,16 @@ export default function LeaderboardScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!highlightLogin) return;
-    const y = highlightYRef.current;
-    if (y === null || !scrollRef.current) return;
-    scrollRef.current.scrollTo({ y: Math.max(0, y - 16), animated: true });
-  }, [highlightLogin, users]);
+    if (!scrollRef.current) return;
+    const tryScroll = () => {
+      const y = rowYByLoginRef.current[highlightLogin];
+      if (typeof y !== 'number') return;
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+    };
+    tryScroll();
+    const timer = setTimeout(tryScroll, 50);
+    return () => clearTimeout(timer);
+  }, [highlightLogin, users, activeTab]);
 
   const pageLabel = totalPages ? `Page ${page} / ${totalPages}` : `Page ${page}`;
 
@@ -753,9 +759,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
               highlightLogin === user.login && styles.cardHighlighted,
             ]}
             onLayout={(event) => {
-              if (highlightLogin === user.login) {
-                highlightYRef.current = event.nativeEvent.layout.y;
-              }
+              rowYByLoginRef.current[user.login] = event.nativeEvent.layout.y;
             }}
             onPress={() =>
               navigation.navigate('Search', { initialLogin: user.login })
@@ -821,9 +825,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
               highlightLogin === entry.login && styles.cardHighlighted,
             ]}
             onLayout={(event) => {
-              if (highlightLogin === entry.login) {
-                highlightYRef.current = event.nativeEvent.layout.y;
-              }
+              rowYByLoginRef.current[entry.login] = event.nativeEvent.layout.y;
             }}
             onPress={() => navigation.navigate('Search', { initialLogin: entry.login })}
           >
