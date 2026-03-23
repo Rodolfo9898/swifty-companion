@@ -235,6 +235,12 @@ async function ensureSeed(db: SQLite.SQLiteDatabase) {
   }
 }
 
+export async function refreshLocalSqliteLeaderboardFromSnapshot() {
+  const db = await getDb();
+  const snapshot = await getPreferredSnapshot();
+  await seedDb(db, snapshot);
+}
+
 async function getDb() {
   if (!dbPromise) {
     dbPromise = (async () => {

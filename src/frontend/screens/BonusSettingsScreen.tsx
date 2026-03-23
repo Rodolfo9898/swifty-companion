@@ -11,12 +11,14 @@ import {
 
 import { useTheme } from '../ThemeContext';
 import { fetchLeaderboardStatus } from '../../backend/api/leaderboardApi';
+import { useLocalDb } from '../LocalDbContext';
 import type { ThemeColors } from '../styles/theme';
 import { readLocalRuntimeSettings, saveLocalRuntimeSettings } from '../utils/localSettings';
 
 export default function BonusSettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isRefreshingDb, refreshDb } = useLocalDb();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,6 +87,25 @@ export default function BonusSettingsScreen() {
     }
   };
 
+  const refreshLocalDb = async () => {
+    if (isRefreshingDb) return;
+    try {
+      await refreshDb();
+      const status = await fetchLeaderboardStatus();
+      setSnapshotStatus({
+        users: status.users,
+        campuses: status.campuses,
+        generatedAt: 'generatedAt' in status ? String(status.generatedAt || '') : undefined,
+        version: 'version' in status ? Number(status.version || 0) : undefined,
+        lastUserUpdate: status.lastUserUpdate ?? null,
+      });
+      Alert.alert('DB refreshed', 'Local leaderboard database has been refreshed.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to refresh local DB.';
+      Alert.alert('Refresh failed', message);
+    }
+  };
+
   const savedAtLabel = savedAt ? new Date(savedAt).toLocaleString() : 'Not saved yet';
 
   return (
@@ -132,6 +153,16 @@ export default function BonusSettingsScreen() {
           disabled={loading || saving}
         >
           <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save settings'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.secondaryButton, isRefreshingDb && styles.buttonDisabled]}
+          onPress={refreshLocalDb}
+          disabled={isRefreshingDb}
+        >
+          <Text style={styles.secondaryButtonText}>
+            {isRefreshingDb ? 'Refreshing local DB...' : 'Refresh local DB now'}
+          </Text>
         </TouchableOpacity>
 
         <Text style={styles.hint}>Last saved: {savedAtLabel}</Text>

@@ -20,6 +20,7 @@ import TranscriptWebScreen from './screens/TranscriptWebScreen';
 import type { FortyTwoUser } from './types/fortyTwo';
 import createAppRootStyles from './styles/appRootStyles';
 import { AuthProvider, useAuth } from './AuthContext';
+import { LocalDbProvider } from './LocalDbContext';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
 export type RootStackParamList = {
@@ -267,9 +268,11 @@ function AppNavigator() {
 export default function AppRoot() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
+      <LocalDbProvider>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </LocalDbProvider>
     </ThemeProvider>
   );
 }

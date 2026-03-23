@@ -26,6 +26,9 @@ make leaderboard-export-snapshot
 3. Start app (`make run-android` / `make run-ios` / macOS target):
 - If `LEADERBOARD_API_URL` is set, app uses backend API.
 - If `LEADERBOARD_API_URL` is not set, app seeds and uses on-device SQLite (`leaderboard_local.db`) from the snapshot for fast local queries.
+4. In-app refresh:
+- Go to `Quick Access` → `Local sync settings` → `Refresh local DB now`.
+- During refresh, app locks `My Profile`, `Search`, and `RNCP Planner` from Home until update completes.
 
 Snapshot file location:
 - `src/frontend/data/leaderboard_snapshot.json`

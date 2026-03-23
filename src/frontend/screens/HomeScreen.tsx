@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../AppRoot';
 import { useAuth } from '../AuthContext';
+import { useLocalDb } from '../LocalDbContext';
 import createHomeStyles from '../styles/homeStyles';
 import { useTheme } from '../ThemeContext';
 
@@ -25,8 +26,10 @@ export default function HomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createHomeStyles(colors), [colors]);
   const { user } = useAuth();
+  const { isRefreshingDb } = useLocalDb();
   const avatar = user?.image?.link;
   const canOpenProfile = Boolean(user?.login);
+  const blockedDuringRefresh = new Set<keyof RootStackParamList>(['Search', 'Planner']);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -43,27 +46,46 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>Choose a section to explore.</Text>
         </View>
       </View>
+      {isRefreshingDb ? (
+        <Text style={styles.subtitle}>Local leaderboard DB is updating. Some sections are temporarily locked.</Text>
+      ) : null}
 
       <View style={styles.grid}>
         <TouchableOpacity
-          style={[styles.tile, !canOpenProfile && { opacity: 0.6 }]}
+          style={[styles.tile, (!canOpenProfile || isRefreshingDb) && { opacity: 0.6 }]}
           onPress={() => {
+            if (isRefreshingDb) {
+              Alert.alert('Database update', 'Please wait until local DB refresh is completed.');
+              return;
+            }
             if (!user?.login) return;
             navigation.navigate('Profile', { login: user.login, initialProfile: user });
           }}
-          disabled={!canOpenProfile}
+          disabled={!canOpenProfile || isRefreshingDb}
         >
           <Text style={styles.tileTitle}>My Profile</Text>
-          <Text style={styles.tileSubtitle}>Open your current 42 profile.</Text>
+          <Text style={styles.tileSubtitle}>
+            {isRefreshingDb ? 'Temporarily locked while local DB updates.' : 'Open your current 42 profile.'}
+          </Text>
         </TouchableOpacity>
         {TILES.map((tile) => (
           <TouchableOpacity
             key={tile.route}
-            style={styles.tile}
-            onPress={() => navigation.navigate(tile.route)}
+            style={[styles.tile, isRefreshingDb && blockedDuringRefresh.has(tile.route) && { opacity: 0.6 }]}
+            onPress={() => {
+              if (isRefreshingDb && blockedDuringRefresh.has(tile.route)) {
+                Alert.alert('Database update', 'Please wait until local DB refresh is completed.');
+                return;
+              }
+              navigation.navigate(tile.route);
+            }}
           >
             <Text style={styles.tileTitle}>{tile.title}</Text>
-            <Text style={styles.tileSubtitle}>{tile.subtitle}</Text>
+            <Text style={styles.tileSubtitle}>
+              {isRefreshingDb && blockedDuringRefresh.has(tile.route)
+                ? 'Temporarily locked while local DB updates.'
+                : tile.subtitle}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
