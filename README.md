@@ -25,7 +25,7 @@ make leaderboard-export-snapshot
 ```
 3. Start app (`make run-android` / `make run-ios` / macOS target):
 - If `LEADERBOARD_API_URL` is set, app uses backend API.
-- If `LEADERBOARD_API_URL` is not set, app uses the seeded local snapshot.
+- If `LEADERBOARD_API_URL` is not set, app seeds and uses on-device SQLite (`leaderboard_local.db`) from the snapshot for fast local queries.
 
 Snapshot file location:
 - `src/frontend/data/leaderboard_snapshot.json`

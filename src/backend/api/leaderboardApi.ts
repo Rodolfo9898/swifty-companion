@@ -1,11 +1,11 @@
 import Constants from 'expo-constants';
 import {
-  getLocalLeaderboardCampuses,
-  getLocalLeaderboardPage,
-  getLocalLeaderboardPromos,
-  getLocalLeaderboardStatus,
-  getLocalLeaderboardTop,
-} from '../../frontend/utils/localLeaderboardSnapshot';
+  getLocalSqliteLeaderboardCampuses,
+  getLocalSqliteLeaderboardPage,
+  getLocalSqliteLeaderboardPromos,
+  getLocalSqliteLeaderboardStatus,
+  getLocalSqliteLeaderboardTop,
+} from '../../frontend/utils/localLeaderboardSqlite';
 
 const extra = (Constants.expoConfig?.extra ??
   (Constants as { manifest?: { extra?: Record<string, unknown> } }).manifest?.extra ??
@@ -71,7 +71,7 @@ export function isLeaderboardApiEnabled() {
 
 export async function fetchLeaderboardCampuses() {
   if (!leaderboardApiUrl) {
-    return getLocalLeaderboardCampuses();
+    return getLocalSqliteLeaderboardCampuses();
   }
   return request<LeaderboardCampus[]>('/campuses');
 }
@@ -87,7 +87,7 @@ export async function fetchLeaderboardPage(params: {
   meLogin?: string;
 }) {
   if (!leaderboardApiUrl) {
-    return getLocalLeaderboardPage(params);
+    return getLocalSqliteLeaderboardPage(params);
   }
   const search = new URLSearchParams();
   if (params.campusId) search.set('campusId', String(params.campusId));
@@ -103,7 +103,7 @@ export async function fetchLeaderboardPage(params: {
 
 export async function fetchLeaderboardTop(params: { campusId?: number; promo?: string; limit?: number; excludeLogin?: string }) {
   if (!leaderboardApiUrl) {
-    return getLocalLeaderboardTop(params);
+    return getLocalSqliteLeaderboardTop(params);
   }
   const search = new URLSearchParams();
   if (params.campusId) search.set('campusId', String(params.campusId));
@@ -115,7 +115,7 @@ export async function fetchLeaderboardTop(params: { campusId?: number; promo?: s
 
 export async function fetchLeaderboardPromos(params: { campusId?: number }) {
   if (!leaderboardApiUrl) {
-    return getLocalLeaderboardPromos(params);
+    return getLocalSqliteLeaderboardPromos(params);
   }
   const search = new URLSearchParams();
   if (params.campusId) search.set('campusId', String(params.campusId));
@@ -124,7 +124,7 @@ export async function fetchLeaderboardPromos(params: { campusId?: number }) {
 
 export async function fetchLeaderboardStatus() {
   if (!leaderboardApiUrl) {
-    return getLocalLeaderboardStatus();
+    return getLocalSqliteLeaderboardStatus();
   }
   return request<{
     users: number;
