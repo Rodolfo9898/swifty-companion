@@ -18,8 +18,7 @@ const TOKEN_ENDPOINT = `${API_BASE}/oauth/token`;
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
 const REDIRECT_URI = 'swifty-companion://redirect';
-const isExpoGo = Constants.appOwnership === 'expo';
-const useProxy = isExpoGo && Boolean(proxyRedirectUri);
+const useProxy = Boolean(proxyRedirectUri);
 
 async function getClientSecret() {
   const settings = await readLocalRuntimeSettings();
@@ -113,8 +112,18 @@ export async function loginWith42(): Promise<AuthState> {
   });
 
   const result = await request.promptAsync(discovery, { useProxy });
+  if (result.type === 'error') {
+    const details = [
+      result.params.error,
+      result.params.error_description,
+      result.error?.message,
+    ]
+      .filter(Boolean)
+      .join(' | ');
+    throw new Error(`OAuth login failed${details ? `: ${details}` : '.'}`);
+  }
   if (result.type !== 'success' || !result.params.code) {
-    throw new Error('Login cancelled. Please try again.');
+    throw new Error(`Login cancelled (${result.type}). Please try again.`);
   }
 
   return exchangeToken({
