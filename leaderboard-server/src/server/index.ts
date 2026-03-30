@@ -258,6 +258,10 @@ app.post('/sync', async (req, res) => {
 
 app.listen(config.port, () => {
   process.stdout.write(`Leaderboard API listening on :${config.port}\n`);
+  if (!config.hasOauthCredentials) {
+    process.stdout.write('Sync disabled: missing FT_CLIENT_ID or FT_CLIENT_SECRET\n');
+    return;
+  }
   setTimeout(() => {
     void runScheduledSync('startup');
   }, 1500);
