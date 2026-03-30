@@ -6,6 +6,28 @@ import { syncAll } from '../sync/index.js';
 
 const app = express();
 const db = getDb();
+let syncInProgress = false;
+
+async function runScheduledSync(reason: string, rethrowOnError = false) {
+  if (syncInProgress) {
+    process.stdout.write(`Sync skipped (${reason}): already running\n`);
+    return;
+  }
+  syncInProgress = true;
+  process.stdout.write(`Sync started (${reason})\n`);
+  try {
+    await syncAll();
+    process.stdout.write(`Sync completed (${reason})\n`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Sync failed (${reason}): ${message}\n`);
+    if (rethrowOnError) {
+      throw err;
+    }
+  } finally {
+    syncInProgress = false;
+  }
+}
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -226,7 +248,7 @@ app.post('/sync', async (req, res) => {
   }
 
   try {
-    await syncAll();
+    await runScheduledSync('manual', true);
     res.json({ status: 'ok' });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Sync failed';
@@ -236,4 +258,16 @@ app.post('/sync', async (req, res) => {
 
 app.listen(config.port, () => {
   process.stdout.write(`Leaderboard API listening on :${config.port}\n`);
+  setTimeout(() => {
+    void runScheduledSync('startup');
+  }, 1500);
+  if (config.syncIntervalMinutes > 0) {
+    const intervalMs = config.syncIntervalMinutes * 60 * 1000;
+    setInterval(() => {
+      void runScheduledSync('interval');
+    }, intervalMs);
+    process.stdout.write(`Sync interval enabled: every ${config.syncIntervalMinutes} minute(s)\n`);
+  } else {
+    process.stdout.write('Sync interval disabled (LEADERBOARD_SYNC_INTERVAL_MINUTES <= 0)\n');
+  }
 });

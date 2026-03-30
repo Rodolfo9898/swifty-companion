@@ -43,3 +43,25 @@ make leaderboard-export-snapshot
 
 - The mobile app uses `LEADERBOARD_API_URL` to switch from direct 42 API calls to the backend.
 - For large campuses, the first sync may take time due to rate limits.
+- In cloud platforms (Railway), runtime `PORT` is supported automatically.
+
+## Railway Deployment (Public Access)
+
+1. Create a Railway service from this repo and set **Root Directory** to:
+   - `leaderboard-server`
+2. Keep build/start from `railway.toml` (or equivalent):
+   - build: Nixpacks
+   - start: `npm run start`
+3. Add a **persistent volume** and set:
+   - `LEADERBOARD_DB_PATH=/data/leaderboard.db`
+4. Set required env vars in Railway:
+   - `FT_CLIENT_ID`
+   - `FT_CLIENT_SECRET`
+   - `API_BASE_URL=https://api.intra.42.fr`
+   - `LEADERBOARD_SYNC_INTERVAL_MINUTES` (e.g. `10080`)
+5. Optional but recommended:
+   - `LEADERBOARD_SYNC_TOKEN` (protects `POST /sync`)
+   - `LEADERBOARD_CAMPUS_IDS` (limit sync scope)
+6. Point mobile app env to Railway URL:
+   - `LEADERBOARD_API_URL=https://<your-service>.up.railway.app`
+7. Rebuild the mobile app after env changes.
