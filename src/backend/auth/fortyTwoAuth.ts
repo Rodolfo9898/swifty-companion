@@ -18,7 +18,7 @@ const TOKEN_ENDPOINT = `${API_BASE}/oauth/token`;
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
 const REDIRECT_URI = 'swifty-companion://redirect';
-const useProxy = Boolean(proxyRedirectUri);
+const useProxy = Constants.appOwnership === 'expo' && Boolean(proxyRedirectUri);
 
 async function getClientSecret() {
   const settings = await readLocalRuntimeSettings();
@@ -38,8 +38,8 @@ function isTokenFresh(state: AuthState | null) {
   return state.expiresAt > Date.now() + TOKEN_EXPIRY_BUFFER_MS;
 }
 
-function getRedirectUri() {
-  if (useProxy && proxyRedirectUri) {
+function getRedirectUri(proxyEnabled: boolean) {
+  if (proxyEnabled && proxyRedirectUri) {
     return proxyRedirectUri;
   }
   return AuthSession.makeRedirectUri({
@@ -98,7 +98,7 @@ async function exchangeToken(params: Record<string, string>): Promise<AuthState>
 
 export async function loginWith42(): Promise<AuthState> {
   await requireCredentials();
-  const redirectUri = getRedirectUri();
+  const redirectUri = getRedirectUri(useProxy);
   const discovery = {
     authorizationEndpoint: AUTH_ENDPOINT,
     tokenEndpoint: TOKEN_ENDPOINT,

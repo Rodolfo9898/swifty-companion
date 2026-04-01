@@ -45,6 +45,7 @@ export const config = {
   port: parseNumber(process.env.PORT || process.env.LEADERBOARD_PORT, 4242),
   dbPath: normalizeEnv(process.env.LEADERBOARD_DB_PATH) || path.resolve(__dirname, '..', '..', 'data', 'leaderboard.db'),
   syncIntervalMinutes: parseNumber(process.env.LEADERBOARD_SYNC_INTERVAL_MINUTES, 720),
+  syncOnStartup: process.env.LEADERBOARD_SYNC_ON_STARTUP === '1',
   cursusId: parseNumber(process.env.FT_CURSUS_ID, 21),
   campusIds: parseCsvIds(process.env.LEADERBOARD_CAMPUS_IDS),
   syncToken: normalizeEnv(process.env.LEADERBOARD_SYNC_TOKEN),

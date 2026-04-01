@@ -262,9 +262,14 @@ app.listen(config.port, () => {
     process.stdout.write('Sync disabled: missing FT_CLIENT_ID or FT_CLIENT_SECRET\n');
     return;
   }
-  setTimeout(() => {
-    void runScheduledSync('startup');
-  }, 1500);
+  if (config.syncOnStartup) {
+    setTimeout(() => {
+      void runScheduledSync('startup');
+    }, 1500);
+    process.stdout.write('Startup sync enabled (LEADERBOARD_SYNC_ON_STARTUP=1)\n');
+  } else {
+    process.stdout.write('Startup sync disabled\n');
+  }
   if (config.syncIntervalMinutes > 0) {
     const intervalMs = config.syncIntervalMinutes * 60 * 1000;
     setInterval(() => {

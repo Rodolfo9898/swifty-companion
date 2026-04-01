@@ -1,6 +1,6 @@
 APP_DIR := .
 
-.PHONY: install start android ios run-android run-ios web leaderboard leaderboard-sync leaderboard-export-snapshot dev devsync clean
+.PHONY: install start android ios run-android run-ios web android-release-build android-release-install android-release-apk leaderboard leaderboard-sync leaderboard-export-snapshot dev devsync clean
 
 install:
 	cd $(APP_DIR) && npm install
@@ -22,6 +22,15 @@ run-ios:
 
 web:
 	cd $(APP_DIR) && npx expo start --web
+
+android-release-build:
+	cd $(APP_DIR)/android && ./gradlew assembleRelease
+
+android-release-install:
+	cd $(APP_DIR)/android && ./gradlew installRelease
+
+android-release-apk:
+	@echo "$(APP_DIR)/android/app/build/outputs/apk/release/app-release.apk"
 
 leaderboard:
 	cd $(APP_DIR)/leaderboard-server && npm install && npm run start
