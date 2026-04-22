@@ -1,6 +1,6 @@
 APP_DIR := .
 
-.PHONY: install start android ios run-android run-ios web android-release-build android-release-install android-release-apk leaderboard leaderboard-sync leaderboard-export-snapshot dev devsync clean
+.PHONY: install start android ios run-android run-ios web android-release-build android-release-install android-release-apk dev clean
 
 install:
 	cd $(APP_DIR) && npm install
@@ -32,24 +32,8 @@ android-release-install:
 android-release-apk:
 	@echo "$(APP_DIR)/android/app/build/outputs/apk/release/app-release.apk"
 
-leaderboard:
-	cd $(APP_DIR)/leaderboard-server && npm install && npm run start
-
-leaderboard-sync:
-	cd $(APP_DIR)/leaderboard-server && npm install && npm run sync
-
-leaderboard-export-snapshot:
-	cd $(APP_DIR)/leaderboard-server && npm install && npm run export-snapshot
-
 dev:
-	cd $(APP_DIR)/leaderboard-server && npm install && npm run start &
 	cd $(APP_DIR) && npx expo run:android --device
-
-devsync:
-	cd $(APP_DIR)/leaderboard-server && npm install && npm run sync
-	cd $(APP_DIR) && git add leaderboard-server/data/leaderboard.db
-	cd $(APP_DIR) && git commit -m "db-update"
-	cd $(APP_DIR) && git push
 
 clean:
 	cd $(APP_DIR) && rm -rf node_modules .expo
