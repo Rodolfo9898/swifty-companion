@@ -8,7 +8,19 @@ const app = express();
 const db = getDb();
 let syncInProgress = false;
 
-async function runScheduledSync(reason: string, rethrowOnError = false) {
+function parseCampusIds(value: unknown) {
+  const raw = String(value ?? '')
+    .split(',')
+    .map((entry) => Number(entry.trim()))
+    .filter((entry) => Number.isFinite(entry) && entry > 0);
+  return Array.from(new Set(raw));
+}
+
+async function runScheduledSync(
+  reason: string,
+  rethrowOnError = false,
+  options: { campusIds?: number[] } = {},
+) {
   if (syncInProgress) {
     process.stdout.write(`Sync skipped (${reason}): already running\n`);
     return;
@@ -16,7 +28,7 @@ async function runScheduledSync(reason: string, rethrowOnError = false) {
   syncInProgress = true;
   process.stdout.write(`Sync started (${reason})\n`);
   try {
-    await syncAll();
+    await syncAll(options);
     process.stdout.write(`Sync completed (${reason})\n`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -248,7 +260,8 @@ app.post('/sync', async (req, res) => {
   }
 
   try {
-    await runScheduledSync('manual', true);
+    const campusIds = parseCampusIds(req.query.campusIds);
+    await runScheduledSync('manual', true, { campusIds });
     res.json({ status: 'ok' });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Sync failed';

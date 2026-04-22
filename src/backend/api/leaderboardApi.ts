@@ -66,7 +66,7 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export function isLeaderboardApiEnabled() {
-  return true;
+  return Boolean(leaderboardApiUrl);
 }
 
 export async function fetchLeaderboardCampuses() {
@@ -132,4 +132,24 @@ export async function fetchLeaderboardStatus() {
     userCursusRows: number;
     lastUserUpdate: number | null;
   }>('/status');
+}
+
+export async function triggerLeaderboardSync(params?: { campusIds?: number[] }) {
+  ensureApi();
+  const search = new URLSearchParams();
+  const campusIds = (params?.campusIds || [])
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry) && entry > 0);
+  if (campusIds.length) {
+    search.set('campusIds', campusIds.join(','));
+  }
+  const suffix = search.size ? `?${search.toString()}` : '';
+  const response = await fetch(`${leaderboardApiUrl}/sync${suffix}`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || response.statusText || 'Leaderboard sync failed');
+  }
+  return response.json() as Promise<{ status: string }>;
 }

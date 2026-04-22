@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../ThemeContext';
-import { fetchLeaderboardStatus } from '../../backend/api/leaderboardApi';
+import {
+  fetchLeaderboardCampuses,
+  fetchLeaderboardStatus,
+  isLeaderboardApiEnabled,
+  type LeaderboardCampus,
+} from '../../backend/api/leaderboardApi';
 import { useLocalDb } from '../LocalDbContext';
 import type { ThemeColors } from '../styles/theme';
 import { readLocalRuntimeSettings, saveLocalRuntimeSettings } from '../utils/localSettings';
@@ -32,6 +37,9 @@ export default function BonusSettingsScreen() {
     version?: number;
     lastUserUpdate?: number | null;
   } | null>(null);
+  const [campuses, setCampuses] = useState<LeaderboardCampus[]>([]);
+  const [selectedCampusIds, setSelectedCampusIds] = useState<number[]>([]);
+  const [loadingCampuses, setLoadingCampuses] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -55,6 +63,23 @@ export default function BonusSettingsScreen() {
       } catch {
         if (isActive) {
           setSnapshotStatus(null);
+        }
+      }
+      if (isLeaderboardApiEnabled()) {
+        setLoadingCampuses(true);
+        try {
+          const availableCampuses = await fetchLeaderboardCampuses();
+          if (isActive) {
+            setCampuses(availableCampuses);
+          }
+        } catch {
+          if (isActive) {
+            setCampuses([]);
+          }
+        } finally {
+          if (isActive) {
+            setLoadingCampuses(false);
+          }
         }
       }
       setLoading(false);
@@ -90,7 +115,7 @@ export default function BonusSettingsScreen() {
   const refreshLocalDb = async () => {
     if (isRefreshingDb) return;
     try {
-      await refreshDb();
+      await refreshDb({ campusIds: selectedCampusIds });
       const status = await fetchLeaderboardStatus();
       setSnapshotStatus({
         users: status.users,
@@ -99,11 +124,22 @@ export default function BonusSettingsScreen() {
         version: 'version' in status ? Number(status.version || 0) : undefined,
         lastUserUpdate: status.lastUserUpdate ?? null,
       });
-      Alert.alert('DB refreshed', 'Local leaderboard database has been refreshed.');
+      Alert.alert(
+        'DB refreshed',
+        isLeaderboardApiEnabled() && selectedCampusIds.length
+          ? `Selected campuses refreshed (${selectedCampusIds.length}) and local DB reseeded.`
+          : 'Leaderboard sync executed and local DB reseeded.',
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to refresh local DB.';
       Alert.alert('Refresh failed', message);
     }
+  };
+
+  const toggleCampus = (campusId: number) => {
+    setSelectedCampusIds((prev) =>
+      prev.includes(campusId) ? prev.filter((entry) => entry !== campusId) : [...prev, campusId],
+    );
   };
 
   const savedAtLabel = savedAt ? new Date(savedAt).toLocaleString() : 'Not saved yet';
@@ -164,6 +200,50 @@ export default function BonusSettingsScreen() {
             {isRefreshingDb ? 'Refreshing local DB...' : 'Refresh local DB now'}
           </Text>
         </TouchableOpacity>
+        {isLeaderboardApiEnabled() ? (
+          <View style={styles.campusCard}>
+            <Text style={styles.label}>Campuses to refresh</Text>
+            <Text style={styles.hint}>
+              No selection means all campuses configured on backend.
+            </Text>
+            {loadingCampuses ? <Text style={styles.hint}>Loading campuses...</Text> : null}
+            <View style={styles.multiSelectWrap}>
+              {campuses.map((campus) => {
+                const active = selectedCampusIds.includes(campus.id);
+                return (
+                  <TouchableOpacity
+                    key={campus.id}
+                    style={[styles.multiSelectItem, active && styles.multiSelectItemActive]}
+                    onPress={() => toggleCampus(campus.id)}
+                    disabled={isRefreshingDb}
+                  >
+                    <Text style={[styles.multiSelectText, active && styles.multiSelectTextActive]}>
+                      {campus.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={styles.rowButtons}>
+              <TouchableOpacity
+                style={[styles.secondaryButton, isRefreshingDb && styles.buttonDisabled]}
+                onPress={() => setSelectedCampusIds([])}
+                disabled={isRefreshingDb}
+              >
+                <Text style={styles.secondaryButtonText}>Select all (backend default)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.secondaryButton, isRefreshingDb && styles.buttonDisabled]}
+                onPress={() => setSelectedCampusIds(campuses.map((entry) => entry.id))}
+                disabled={isRefreshingDb || campuses.length === 0}
+              >
+                <Text style={styles.secondaryButtonText}>Select all listed</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.hint}>Remote sync disabled: LEADERBOARD_API_URL is not configured.</Text>
+        )}
 
         <Text style={styles.hint}>Last saved: {savedAtLabel}</Text>
         {snapshotStatus ? (
@@ -260,6 +340,41 @@ function createStyles(colors: ThemeColors) {
       color: colors.textMuted,
       fontSize: 12,
       marginTop: 6,
+    },
+    campusCard: {
+      marginTop: 8,
+      gap: 8,
+    },
+    multiSelectWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    multiSelectItem: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      backgroundColor: colors.surfaceAlt,
+    },
+    multiSelectItemActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    multiSelectText: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    multiSelectTextActive: {
+      color: colors.accentText,
+    },
+    rowButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
     },
   });
 }

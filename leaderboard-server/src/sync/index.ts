@@ -251,14 +251,22 @@ async function syncCampusUsers(campus: Campus) {
   await syncWeeklyLogtime(db);
 }
 
-export async function syncAll() {
+type SyncOptions = {
+  campusIds?: number[];
+};
+
+export async function syncAll(options: SyncOptions = {}) {
   const db = getDb();
   db.exec('BEGIN');
   db.exec('COMMIT');
 
   const campuses = await syncCampuses();
-  const filtered = config.campusIds.length
-    ? campuses.filter((campus) => config.campusIds.includes(campus.id))
+  const selectedCampusIds = Array.isArray(options.campusIds)
+    ? options.campusIds.filter((entry) => Number.isFinite(entry) && entry > 0)
+    : [];
+  const effectiveCampusIds = selectedCampusIds.length ? selectedCampusIds : config.campusIds;
+  const filtered = effectiveCampusIds.length
+    ? campuses.filter((campus) => effectiveCampusIds.includes(campus.id))
     : campuses;
   if (!filtered.length) {
     process.stdout.write('Sync: no campuses selected. Check LEADERBOARD_CAMPUS_IDS.\n');
