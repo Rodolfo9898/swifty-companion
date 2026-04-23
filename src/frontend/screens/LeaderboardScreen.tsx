@@ -9,14 +9,10 @@ import {
   fetchCampusUsers,
   fetchUsers,
   fetchUserProfile,
-} from '../../backend/api/fortyTwoApi';
+} from '../../backend/ft/repo';
 import {
-  fetchLeaderboardCampuses,
-  fetchLeaderboardPage,
-  fetchLeaderboardPromos,
-  fetchLeaderboardTop,
-  isLeaderboardApiEnabled,
-} from '../../backend/api/leaderboardApi';
+  leaderboardRepo,
+} from '../../backend/leaderboard/repo';
 import type { RootStackParamList } from '../AppRoot';
 import createLeaderboardStyles from '../styles/leaderboardStyles';
 import { useAuth } from '../AuthContext';
@@ -176,7 +172,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     blackholed_at: false,
     login: false,
   }));
-  const useBackend = isLeaderboardApiEnabled();
+  const useBackend = leaderboardRepo.isEnabled();
   const scrollRef = useRef<ScrollView | null>(null);
   const rowYByLoginRef = useRef<Record<string, number>>({});
 
@@ -184,7 +180,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     const loadCampuses = async () => {
       try {
         const allCampuses: Campus[] = useBackend
-          ? await fetchLeaderboardCampuses()
+          ? await leaderboardRepo.fetchCampuses()
           : await (async () => {
             const perPage = 100;
             let pageIndex = 1;
@@ -216,7 +212,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     setError(null);
     try {
       if (useBackend) {
-        const response = await fetchLeaderboardPage({
+        const response = await leaderboardRepo.fetchPage({
           campusId: targetCampusId === ALL_CAMPUSES ? undefined : targetCampusId,
           promo: promo || undefined,
           search: (searchOverride ?? appliedSearch) || undefined,
@@ -385,7 +381,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     const loadRanking = async () => {
       if (useBackend) {
         try {
-          const entries = await fetchLeaderboardTop({
+          const entries = await leaderboardRepo.fetchTop({
             campusId: campusId === ALL_CAMPUSES ? undefined : campusId,
             limit: 10,
             excludeLogin: 'latorche',
@@ -434,7 +430,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     if (!useBackend) return;
     const loadPromos = async () => {
       try {
-        const list = await fetchLeaderboardPromos({
+        const list = await leaderboardRepo.fetchPromos({
           campusId: campusId === ALL_CAMPUSES ? undefined : campusId,
         });
         const normalized = list

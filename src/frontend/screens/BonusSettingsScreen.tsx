@@ -11,11 +11,9 @@ import {
 
 import { useTheme } from '../ThemeContext';
 import {
-  fetchLeaderboardCampuses,
-  fetchLeaderboardStatus,
-  isLeaderboardApiEnabled,
+  leaderboardRepo,
   type LeaderboardCampus,
-} from '../../backend/api/leaderboardApi';
+} from '../../backend/leaderboard/repo';
 import { useLocalDb } from '../LocalDbContext';
 import type { ThemeColors } from '../styles/theme';
 import { readLocalRuntimeSettings, saveLocalRuntimeSettings } from '../utils/localSettings';
@@ -50,7 +48,7 @@ export default function BonusSettingsScreen() {
       setSyncIntervalMinutes(String(settings.leaderboardSyncIntervalMinutes));
       setSavedAt(settings.updatedAt ?? null);
       try {
-        const status = await fetchLeaderboardStatus();
+        const status = await leaderboardRepo.fetchStatus();
         if (isActive) {
           setSnapshotStatus({
             users: status.users,
@@ -65,10 +63,10 @@ export default function BonusSettingsScreen() {
           setSnapshotStatus(null);
         }
       }
-      if (isLeaderboardApiEnabled()) {
+      if (leaderboardRepo.isEnabled()) {
         setLoadingCampuses(true);
         try {
-          const availableCampuses = await fetchLeaderboardCampuses();
+          const availableCampuses = await leaderboardRepo.fetchCampuses();
           if (isActive) {
             setCampuses(availableCampuses);
           }
@@ -116,7 +114,7 @@ export default function BonusSettingsScreen() {
     if (isRefreshingDb) return;
     try {
       await refreshDb({ campusIds: selectedCampusIds });
-      const status = await fetchLeaderboardStatus();
+      const status = await leaderboardRepo.fetchStatus();
       setSnapshotStatus({
         users: status.users,
         campuses: status.campuses,
@@ -126,7 +124,7 @@ export default function BonusSettingsScreen() {
       });
       Alert.alert(
         'DB refreshed',
-        isLeaderboardApiEnabled() && selectedCampusIds.length
+        leaderboardRepo.isEnabled() && selectedCampusIds.length
           ? `Selected campuses refreshed (${selectedCampusIds.length}) and local DB reseeded.`
           : 'Leaderboard sync executed and local DB reseeded.',
       );
@@ -200,7 +198,7 @@ export default function BonusSettingsScreen() {
             {isRefreshingDb ? 'Refreshing local DB...' : 'Refresh local DB now'}
           </Text>
         </TouchableOpacity>
-        {isLeaderboardApiEnabled() ? (
+        {leaderboardRepo.isEnabled() ? (
           <View style={styles.campusCard}>
             <Text style={styles.label}>Campuses to refresh</Text>
             <Text style={styles.hint}>

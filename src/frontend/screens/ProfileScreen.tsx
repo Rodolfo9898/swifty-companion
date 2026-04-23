@@ -12,7 +12,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../AppRoot';
-import { fetchUserProfile } from '../../backend/api/fortyTwoApi';
+import { fetchUserProfile } from '../../backend/ft/repo';
 import type { FortyTwoCursusUser, FortyTwoProjectUser, FortyTwoUser } from '../types/fortyTwo';
 import ProgressBar from '../components/ProgressBar';
 import SectionHeader from '../components/SectionHeader';

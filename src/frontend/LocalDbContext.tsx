@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { isLeaderboardApiEnabled, triggerLeaderboardSync } from '../backend/api/leaderboardApi';
+import { leaderboardRepo } from '../backend/leaderboard/repo';
 import { refreshLocalSqliteLeaderboardFromSnapshot } from './utils/localLeaderboardSqlite';
 
 type RefreshDbOptions = {
@@ -24,8 +24,8 @@ export function LocalDbProvider({ children }: { children: React.ReactNode }) {
     if (isRefreshingDb) return;
     setIsRefreshingDb(true);
     try {
-      if (isLeaderboardApiEnabled()) {
-        await triggerLeaderboardSync({ campusIds: options?.campusIds });
+      if (leaderboardRepo.isEnabled()) {
+        await leaderboardRepo.sync({ campusIds: options?.campusIds });
       }
       await refreshLocalSqliteLeaderboardFromSnapshot();
     } finally {

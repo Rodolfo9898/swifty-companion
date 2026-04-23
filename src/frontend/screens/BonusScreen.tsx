@@ -14,8 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 
 import createBonusStyles from '../styles/bonusStyles';
-import { ensureAccessToken } from '../../backend/auth/fortyTwoAuth';
-import { fetchMe } from '../../backend/api/fortyTwoApi';
+import { ensureAccessToken } from '../../backend/auth/user';
+import { fetchMe } from '../../backend/ft/repo';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
 

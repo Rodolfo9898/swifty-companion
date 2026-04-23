@@ -6,7 +6,7 @@ import {
   fetchProjectByName,
   fetchProjectBySlug,
   fetchProjectTags,
-} from '../../backend/api/fortyTwoApi';
+} from '../../backend/ft/repo';
 import ProgressBar from '../components/ProgressBar';
 import createPlannerStyles from '../styles/plannerStyles';
 import {

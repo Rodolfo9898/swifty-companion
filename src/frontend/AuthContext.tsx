@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { fetchMe, MeProfile } from '../backend/api/fortyTwoApi';
-import { getAuthState, loginWith42, logout as logoutSession } from '../backend/auth/fortyTwoAuth';
+import { fetchMe, MeProfile } from '../backend/ft/repo';
+import { getAuthState, loginWith42, logout as logoutSession } from '../backend/auth/user';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
