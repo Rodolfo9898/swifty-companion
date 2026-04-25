@@ -1,4 +1,3 @@
-import { Buffer } from 'buffer';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -31,6 +30,34 @@ const TRANSCRIPT_TEMPLATES: TranscriptTemplate[] = [
 ];
 
 const API_BASE = 'https://api.intra.42.fr';
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+function bytesToBase64(bytes: Uint8Array) {
+  let output = '';
+  let index = 0;
+
+  for (; index + 2 < bytes.length; index += 3) {
+    const chunk = (bytes[index] << 16) | (bytes[index + 1] << 8) | bytes[index + 2];
+    output +=
+      BASE64_ALPHABET[(chunk >> 18) & 63] +
+      BASE64_ALPHABET[(chunk >> 12) & 63] +
+      BASE64_ALPHABET[(chunk >> 6) & 63] +
+      BASE64_ALPHABET[chunk & 63];
+  }
+
+  if (index < bytes.length) {
+    const first = bytes[index];
+    const second = index + 1 < bytes.length ? bytes[index + 1] : 0;
+    const chunk = (first << 16) | (second << 8);
+    output +=
+      BASE64_ALPHABET[(chunk >> 18) & 63] +
+      BASE64_ALPHABET[(chunk >> 12) & 63] +
+      (index + 1 < bytes.length ? BASE64_ALPHABET[(chunk >> 6) & 63] : '=') +
+      '=';
+  }
+
+  return output;
+}
 
 async function savePdfFromResponse(response: Response, targetUri: string) {
   if (!response.ok) {
@@ -43,7 +70,7 @@ async function savePdfFromResponse(response: Response, targetUri: string) {
     throw new Error('Received an invalid PDF payload.');
   }
 
-  const pdfBase64 = Buffer.from(bytes).toString('base64');
+  const pdfBase64 = bytesToBase64(bytes);
   await FileSystem.writeAsStringAsync(targetUri, pdfBase64, {
     encoding: FileSystem.EncodingType.Base64,
   });
