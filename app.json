@@ -10,7 +10,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/with-gradle-compat"
     ],
     "splash": {
       "image": "./assets/logo.png",

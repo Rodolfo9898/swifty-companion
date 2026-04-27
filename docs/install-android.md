@@ -38,6 +38,22 @@ echo $JAVA_HOME
 npx expo run:android
 ```
 
+## Gradle compatibility
+
+The generated Android project is pinned to Gradle 9.0.0 so Linux machines with
+Gradle 9.0 can build it without needing a newer 9.3.x install.
+
+Use the project wrapper whenever possible:
+```
+cd android
+./gradlew --version
+./gradlew assembleRelease
+```
+
+If you regenerate native files with Expo, the local config plugin
+`plugins/with-gradle-compat.js` rewrites the Android wrapper back to Gradle
+9.0.0.
+
 ## Troubleshooting
 
 - If you see "Unable to locate a Java Runtime", confirm `JAVA_HOME` is set to JDK 17.
