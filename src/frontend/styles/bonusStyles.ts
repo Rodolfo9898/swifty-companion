@@ -85,9 +85,6 @@ export default function createBonusStyles(colors: ThemeColors) {
       borderColor: colors.border,
       gap: 4,
     },
-    linkButtonDisabled: {
-      opacity: 0.6,
-    },
     linkTitle: {
       color: colors.text,
       fontWeight: '600',
@@ -97,12 +94,6 @@ export default function createBonusStyles(colors: ThemeColors) {
       color: colors.textMuted,
       fontSize: 11,
       textAlign: 'center',
-    },
-    linkRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.xs,
     },
     selectRow: {
       marginTop: spacing.sm,
@@ -172,25 +163,6 @@ export default function createBonusStyles(colors: ThemeColors) {
     modalItemTextActive: {
       color: colors.accent,
       fontWeight: '700',
-    },
-    downloadActionButton: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-      backgroundColor: colors.surface,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      gap: 4,
-      minWidth: 180,
-      alignItems: 'center',
-    },
-    downloadActionTitle: {
-      color: colors.text,
-      fontWeight: '700',
-      fontSize: 13,
-      textAlign: 'center',
     },
   });
 }

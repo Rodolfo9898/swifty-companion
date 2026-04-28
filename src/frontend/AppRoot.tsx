@@ -10,6 +10,7 @@ import CalculatorScreen from './screens/CalculatorScreen';
 import CalculatorProgressScreen from './screens/CalculatorProgressScreen';
 import DevCacheScreen from './screens/DevCacheScreen';
 import HomeScreen from './screens/HomeScreen';
+import IntranetWebScreen from './screens/IntranetWebScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import LoadingScreen from './screens/LoadingScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -47,6 +48,10 @@ export type RootStackParamList = {
     startYear: number;
     endYear: number;
     templateId: number;
+  };
+  IntranetWeb: {
+    url: string;
+    title: string;
   };
   Planner: undefined;
   DevCache: undefined;
@@ -242,6 +247,21 @@ function AppNavigator() {
                 ),
                 headerRight: headerActions,
               }}
+            />
+            <Stack.Screen
+              name="IntranetWeb"
+              component={IntranetWebScreen}
+              options={({ route }) => ({
+                headerTitle: () => (
+                  <View style={styles.headerTitle}>
+                    <View style={styles.headerTitleRow}>
+                      <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
+                      <Text style={styles.headerText}>{route.params.title}</Text>
+                    </View>
+                  </View>
+                ),
+                headerRight: headerActions,
+              })}
             />
             <Stack.Screen
               name="DevCache"

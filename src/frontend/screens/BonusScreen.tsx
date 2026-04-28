@@ -1,8 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  Linking,
   Modal,
   ScrollView,
   Text,
@@ -10,10 +8,8 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system';
 
 import createBonusStyles from '../styles/bonusStyles';
-import { ensureAccessToken } from '../../backend/auth/user';
 import { fetchMe } from '../../backend/ft/repo';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
@@ -28,53 +24,6 @@ const TRANSCRIPT_TEMPLATES: TranscriptTemplate[] = [
   { id: 120, label: '42cursus - Français' },
   { id: 14, label: '42cursus - English' },
 ];
-
-const API_BASE = 'https://api.intra.42.fr';
-const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-function bytesToBase64(bytes: Uint8Array) {
-  let output = '';
-  let index = 0;
-
-  for (; index + 2 < bytes.length; index += 3) {
-    const chunk = (bytes[index] << 16) | (bytes[index + 1] << 8) | bytes[index + 2];
-    output +=
-      BASE64_ALPHABET[(chunk >> 18) & 63] +
-      BASE64_ALPHABET[(chunk >> 12) & 63] +
-      BASE64_ALPHABET[(chunk >> 6) & 63] +
-      BASE64_ALPHABET[chunk & 63];
-  }
-
-  if (index < bytes.length) {
-    const first = bytes[index];
-    const second = index + 1 < bytes.length ? bytes[index + 1] : 0;
-    const chunk = (first << 16) | (second << 8);
-    output +=
-      BASE64_ALPHABET[(chunk >> 18) & 63] +
-      BASE64_ALPHABET[(chunk >> 12) & 63] +
-      (index + 1 < bytes.length ? BASE64_ALPHABET[(chunk >> 6) & 63] : '=') +
-      '=';
-  }
-
-  return output;
-}
-
-async function savePdfFromResponse(response: Response, targetUri: string) {
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Request failed (${response.status}): ${text.slice(0, 160)}`);
-  }
-
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.length < 100) {
-    throw new Error('Received an invalid PDF payload.');
-  }
-
-  const pdfBase64 = bytesToBase64(bytes);
-  await FileSystem.writeAsStringAsync(targetUri, pdfBase64, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-}
 
 function getYearOptions() {
   const currentYear = new Date().getFullYear();
@@ -92,7 +41,6 @@ export default function BonusScreen() {
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
 
-  const [downloading, setDownloading] = useState(false);
   const tapCount = useRef(0);
   const lastTap = useRef(0);
 
@@ -123,84 +71,16 @@ export default function BonusScreen() {
     }
   };
 
-  const openLink = async (url: string) => {
-    try {
-      await Linking.openURL(url);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to open link.';
-      Alert.alert('Open link failed', message);
-    }
-  };
-
   const handleOpenIntranet = () => {
     if (!user?.login) {
       Alert.alert('Login required', 'Please login to open your intranet profile.');
       return;
     }
-    openLink(`https://profile.intra.42.fr/users/${user.login}`);
-  };
-
-  const handleOpenHolyGraph = () => {
-    if (!user?.login) {
-      Alert.alert('Login required', 'Please login to open your holy graph.');
-      return;
-    }
-    openLink(`https://projects.intra.42.fr/projects/graph?login=${encodeURIComponent(user.login)}`);
-  };
-
-  const downloadTranscript = async (
-    token: string,
-    profile: { id: number; login?: string }
-  ) => {
-    if (!profile?.id || !FileSystem.documentDirectory) {
-      throw new Error('File system is not available on this device.');
-    }
-
-    if (selectedStartYear > selectedEndYear) {
-      throw new Error('Start year cannot be greater than end year.');
-    }
-
-    const url = `https://projects.intra.42.fr/users/${profile.id}/transcripts/${selectedTemplateId}/generate.pdf`;
-    const body = new URLSearchParams({
-      start_year: String(selectedStartYear),
-      end_year: String(selectedEndYear),
-      sr_id: String(selectedTemplateId),
-    }).toString();
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/pdf',
-      },
-      body,
+    // @ts-expect-error route typed in RootStackParamList
+    navigation.navigate('IntranetWeb', {
+      url: `https://profile.intra.42.fr/users/${user.login}`,
+      title: 'Intranet Profile',
     });
-
-    const targetUri = `${FileSystem.documentDirectory}transcript_${profile.login || profile.id}_${selectedTemplateId}_${selectedStartYear}-${selectedEndYear}.pdf`;
-    await savePdfFromResponse(response, targetUri);
-    return targetUri;
-  };
-
-  const downloadTranscriptFromApi = async (
-    token: string,
-    profile: { id: number; login?: string }
-  ) => {
-    if (!profile?.id || !FileSystem.documentDirectory) {
-      throw new Error('File system is not available on this device.');
-    }
-
-    const response = await fetch(`${API_BASE}/v2/users/${profile.id}/transcript`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/pdf',
-      },
-    });
-
-    const targetUri = `${FileSystem.documentDirectory}transcript_${profile.login || profile.id}_api.pdf`;
-    await savePdfFromResponse(response, targetUri);
-    return targetUri;
   };
 
 
@@ -230,46 +110,6 @@ export default function BonusScreen() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to open transcript web session.';
       Alert.alert('Open transcript failed', message);
-    }
-  };
-
-  const handleDownloadTranscript = async () => {
-    if (!FileSystem.documentDirectory) {
-      Alert.alert('Download failed', 'File system is not available on this device.');
-      return;
-    }
-    if (downloading) return;
-
-    setDownloading(true);
-    try {
-      const token = await ensureAccessToken();
-
-      const currentUser = await resolveCurrentUser();
-
-      let fileUri: string;
-      try {
-        fileUri = await downloadTranscript(token, currentUser);
-        await openLink(fileUri);
-        return;
-      } catch (primaryErr) {
-        try {
-          fileUri = await downloadTranscriptFromApi(token, currentUser);
-          await openLink(fileUri);
-          return;
-        } catch (apiErr) {
-          const message = apiErr instanceof Error ? apiErr.message : '';
-          if (message.includes('(401)')) {
-            await openLink(`https://projects.intra.42.fr/users/${currentUser.id}/transcripts`);
-            return;
-          }
-          throw apiErr;
-        }
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to download transcript.';
-      Alert.alert('Download failed', message);
-    } finally {
-      setDownloading(false);
     }
   };
 
@@ -306,9 +146,6 @@ export default function BonusScreen() {
         <TouchableOpacity style={styles.linkButton} onPress={handleOpenIntranet}>
           <Text style={styles.linkTitle}>Open intranet profile</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.linkButton} onPress={handleOpenHolyGraph}>
-          <Text style={styles.linkTitle}>Holy graph</Text>
-        </TouchableOpacity>
 
         <View style={styles.linkButton}>
           <Text style={styles.linkTitle}>Transcript</Text>
@@ -342,19 +179,6 @@ export default function BonusScreen() {
             onPress={handleOpenTranscriptWeb}
           >
             <Text style={styles.downloadSecondaryButtonText}>Open in-app transcript session</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.downloadActionButton, downloading && styles.linkButtonDisabled]}
-            onPress={handleDownloadTranscript}
-            disabled={downloading}
-          >
-            <View style={styles.linkRow}>
-              <Text style={styles.linkTitle}>
-                {downloading ? 'Generating PDF…' : 'Download'}
-              </Text>
-              {downloading ? <ActivityIndicator size="small" color={colors.textMuted} /> : null}
-            </View>
           </TouchableOpacity>
         </View>
       </View>
