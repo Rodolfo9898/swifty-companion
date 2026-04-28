@@ -25,7 +25,8 @@ import {
 } from '../utils/appCache';
 
 const ALL_CAMPUSES = -1;
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 75, 100];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BELGIUM_MATCHERS = ['belgium', 'brussels', 'bruxelles'];
 
@@ -154,6 +155,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
   const [showFieldsMenu, setShowFieldsMenu] = useState(false);
   const [showSortFieldMenu, setShowSortFieldMenu] = useState(false);
   const [showPageMenu, setShowPageMenu] = useState(false);
+  const [showPageSizeMenu, setShowPageSizeMenu] = useState(false);
   const [promos, setPromos] = useState<string[]>([]);
   const [promo, setPromo] = useState<string>('');
   const [searchText, setSearchText] = useState('');
@@ -161,6 +163,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
   const [highlightLogin, setHighlightLogin] = useState<string | null>(null);
   const [isJumping, setIsJumping] = useState(false);
   const [sortField, setSortField] = useState<SortField>('level');
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [shownFields, setShownFields] = useState<Record<SortField, boolean>>(() => ({
     displayname: true,
     level: true,
@@ -218,7 +221,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           search: (searchOverride ?? appliedSearch) || undefined,
           sortField,
           page: targetPage,
-          perPage: PAGE_SIZE,
+          perPage: pageSize,
           sort: sortOrder,
           meLogin,
         });
@@ -260,8 +263,8 @@ export default function LeaderboardScreen({ navigation }: Props) {
         return { users: cachedEntry.users, total: cachedEntry.total, page: targetPage };
       }
       const request = targetCampusId === ALL_CAMPUSES
-        ? fetchUsers(targetPage, PAGE_SIZE)
-        : fetchCampusUsers(targetCampusId, targetPage, PAGE_SIZE);
+        ? fetchUsers(targetPage, pageSize)
+        : fetchCampusUsers(targetCampusId, targetPage, pageSize);
       const result = await request;
       const enriched = await enrichUsers(result.data);
       setUsers(enriched);
@@ -318,7 +321,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
   useEffect(() => {
     if (appliedCampusId === null || isJumping) return;
     loadUsers(appliedCampusId, page);
-  }, [appliedCampusId, page, appliedSearch, sortField, sortOrder, promo, isJumping]);
+  }, [appliedCampusId, page, appliedSearch, sortField, sortOrder, promo, pageSize, isJumping]);
 
   const handleJumpToMe = async () => {
     if (!currentUser?.login || isJumping) return;
@@ -337,7 +340,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
       const first = await loadUsers(campusId, 1, currentUser.login, '');
       const hasUser = first?.users.some((user) => user.login === currentUser.login);
       if (hasUser) return;
-      const maxPages = first?.total ? Math.max(1, Math.ceil(first.total / PAGE_SIZE)) : 200;
+      const maxPages = first?.total ? Math.max(1, Math.ceil(first.total / pageSize)) : 200;
       for (let pageIndex = 2; pageIndex <= maxPages; pageIndex += 1) {
         const pageResult = await loadUsers(campusId, pageIndex, undefined, '');
         if (pageResult?.users.some((user) => user.login === currentUser.login)) {
@@ -360,7 +363,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     setAppliedCampusId(campusId);
     setAppliedSearch(searchText.trim());
     setHighlightLogin(null);
-  }, [campusId, searchText, promo, sortField, sortOrder]);
+  }, [campusId, searchText, promo, sortField, sortOrder, pageSize]);
 
   useEffect(() => {
     if (!highlightLogin) return;
@@ -375,8 +378,8 @@ export default function LeaderboardScreen({ navigation }: Props) {
     return () => clearTimeout(timer);
   }, [highlightLogin, users, activeTab]);
 
-  const totalPages = total ? Math.ceil(total / PAGE_SIZE) : undefined;
-  const pageLabel = totalPages ? `Page ${page} / ${totalPages}` : `Page ${page}`;
+  const totalPages = total ? Math.ceil(total / pageSize) : undefined;
+  const pageLabel = `Page ${page}`;
 
   useEffect(() => {
     const loadRanking = async () => {
@@ -480,7 +483,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
       let totalCount = 0;
       const map = new Map<string, RankedEntry>();
       while (pageIndex <= 200) {
-        const result = await fetchCampusUsers(campusId, pageIndex, PAGE_SIZE);
+        const result = await fetchCampusUsers(campusId, pageIndex, pageSize);
         totalCount = result.total ?? totalCount;
         const enriched = await enrichUsers(result.data);
         enriched
@@ -494,8 +497,8 @@ export default function LeaderboardScreen({ navigation }: Props) {
               level,
             });
           });
-        if (result.data.length < PAGE_SIZE) break;
-        if (totalCount && pageIndex * PAGE_SIZE >= totalCount) break;
+        if (result.data.length < pageSize) break;
+        if (totalCount && pageIndex * pageSize >= totalCount) break;
         pageIndex += 1;
       }
       const entries = Array.from(map.values()).sort((a, b) => {
@@ -666,6 +669,18 @@ export default function LeaderboardScreen({ navigation }: Props) {
                       <Text style={styles.dropdownIcon}>▾</Text>
                     </TouchableOpacity>
                   </View>
+                  <View style={styles.inlineGroup}>
+                    <Text style={styles.label}>People</Text>
+                    <TouchableOpacity
+                      style={[styles.dropdownButton, styles.dropdownButtonCompact]}
+                      onPress={() => setShowPageSizeMenu(true)}
+                    >
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        {pageSize}
+                      </Text>
+                      <Text style={styles.dropdownIcon}>▾</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={styles.inlineRow}>
                   {useBackend && currentUser?.login ? (
@@ -744,7 +759,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
       {activeTab === 'compare' ? sortedUsers.map((user, index) => {
         const avatar = user.image?.link;
         const level = getUserLevel(user);
-        const rank = (page - 1) * PAGE_SIZE + index + 1;
+        const rank = (page - 1) * pageSize + index + 1;
         return (
           <TouchableOpacity
             key={`${user.id}-${user.login}`}
@@ -1067,6 +1082,34 @@ export default function LeaderboardScreen({ navigation }: Props) {
                 );
               })}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      <Modal transparent visible={showPageSizeMenu} animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowPageSizeMenu(false)} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>People per page</Text>
+            <View>
+              {PAGE_SIZE_OPTIONS.map((value) => {
+                const isActive = value === pageSize;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => {
+                      setPageSize(value);
+                      setPage(1);
+                      setShowPageSizeMenu(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {value}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </Modal>
