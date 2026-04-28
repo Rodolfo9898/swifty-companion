@@ -1,8 +1,10 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import type { ThemeColors } from './theme';
 import { spacing } from './theme';
 
 export default function createLeaderboardStyles(colors: ThemeColors) {
+  const isWeb = Platform.OS === 'web';
+
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -10,7 +12,10 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     },
     content: {
       padding: spacing.xl,
-      gap: 1,
+      gap: isWeb ? spacing.sm : 1,
+      width: '100%',
+      maxWidth: isWeb ? 1100 : undefined,
+      alignSelf: 'center',
     },
     selectorCard: {
       backgroundColor: colors.surface,
@@ -275,19 +280,25 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
     },
     pagination: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: isWeb ? 'center' : 'space-between',
       gap: spacing.md,
+      flexWrap: 'wrap',
+      marginTop: isWeb ? spacing.md : undefined,
     },
     button: {
-      flex: 1,
+      flex: isWeb ? 0 : 1,
       backgroundColor: colors.accent,
       borderRadius: 12,
       paddingVertical: 10,
+      paddingHorizontal: isWeb ? 18 : undefined,
       alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: isWeb ? 96 : undefined,
     },
     buttonSmall: {
       flex: 0,
-      paddingHorizontal: 10,
+      paddingHorizontal: isWeb ? 18 : 10,
+      minWidth: isWeb ? 96 : undefined,
     },
     buttonText: {
       color: colors.accentText,

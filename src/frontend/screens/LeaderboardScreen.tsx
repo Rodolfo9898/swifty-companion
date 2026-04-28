@@ -375,6 +375,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
     return () => clearTimeout(timer);
   }, [highlightLogin, users, activeTab]);
 
+  const totalPages = total ? Math.ceil(total / PAGE_SIZE) : undefined;
   const pageLabel = totalPages ? `Page ${page} / ${totalPages}` : `Page ${page}`;
 
   useEffect(() => {
@@ -524,8 +525,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
     setRankingComplete(false);
   };
 
-
-  const totalPages = total ? Math.ceil(total / PAGE_SIZE) : undefined;
   const sortedUsers = useMemo(() => {
     const filteredUsers = users.filter((user) => user.cursus_users?.length && isEligibleUser(user));
     if (useBackend) {

@@ -31,7 +31,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const refreshUser = useCallback(async () => {
+    console.info('[42 OAuth] fetching /v2/me');
     const me = await fetchMe();
+    console.info('[42 OAuth] fetched /v2/me');
     setUser(me);
   }, []);
 
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await loginWith42();
       setIsAuthenticated(true);
       await refreshUser();
+      console.info('[42 OAuth] login completed');
     } finally {
       setLoading(false);
     }

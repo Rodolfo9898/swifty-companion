@@ -5,6 +5,9 @@ type ExtraConfig = {
   clientId?: string;
   clientSecret?: string;
   proxyRedirectUri?: string;
+  webClientId?: string;
+  webClientSecret?: string;
+  webRedirectUri?: string;
   leaderboardApiUrl?: string;
 };
 
@@ -21,6 +24,9 @@ export interface AppConfig {
   clientId: string;
   clientSecret: string;
   proxyRedirectUri: string;
+  webClientId: string;
+  webClientSecret: string;
+  webRedirectUri: string;
   leaderboardApiUrl: string;
 }
 
@@ -36,6 +42,9 @@ export function getConfig(): AppConfig {
     clientId: extra.clientId || '',
     clientSecret: extra.clientSecret || '',
     proxyRedirectUri: extra.proxyRedirectUri || '',
+    webClientId: extra.webClientId || '',
+    webClientSecret: extra.webClientSecret || '',
+    webRedirectUri: extra.webRedirectUri || '',
     leaderboardApiUrl: String(extra.leaderboardApiUrl || envLeaderboardUrl || ''),
   };
 }

@@ -1,47 +1,73 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import type { ThemeColors } from './theme';
 import { spacing } from './theme';
 
 export default function createPlannerStyles(colors: ThemeColors) {
+  const isWeb = Platform.OS === 'web';
+
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
     },
     content: {
-      padding: spacing.lg,
-      gap: spacing.lg,
+      padding: isWeb ? 32 : spacing.lg,
+      paddingBottom: isWeb ? 80 : spacing.lg,
+      gap: isWeb ? 24 : spacing.lg,
+      width: '100%',
+      maxWidth: isWeb ? 1180 : undefined,
+      alignSelf: 'center',
     },
     header: {
-      gap: spacing.xs,
+      gap: isWeb ? spacing.sm : spacing.xs,
+      backgroundColor: isWeb ? colors.surface : undefined,
+      borderColor: isWeb ? colors.border : undefined,
+      borderRadius: isWeb ? 28 : undefined,
+      borderWidth: isWeb ? 1 : undefined,
+      padding: isWeb ? 28 : undefined,
+      shadowColor: isWeb ? '#000000' : undefined,
+      shadowOpacity: isWeb ? 0.18 : undefined,
+      shadowRadius: isWeb ? 24 : undefined,
+      alignItems: isWeb ? 'center' : undefined,
     },
     title: {
       color: colors.text,
-      fontSize: 20,
-      fontWeight: '700',
+      fontSize: isWeb ? 34 : 20,
+      fontWeight: '800',
+      letterSpacing: isWeb ? -0.8 : undefined,
+      textAlign: isWeb ? 'center' : undefined,
     },
     subtitle: {
       color: colors.textMuted,
-      fontSize: 12,
+      fontSize: isWeb ? 15 : 12,
+      lineHeight: isWeb ? 22 : undefined,
+      textAlign: isWeb ? 'center' : undefined,
     },
     tabRow: {
       flexDirection: 'row',
       gap: spacing.sm,
       justifyContent: 'center',
+      flexWrap: 'wrap',
+      alignSelf: isWeb ? 'center' : undefined,
+      maxWidth: isWeb ? 820 : undefined,
     },
     tab: {
-      flex: 1,
-      paddingVertical: spacing.sm,
-      borderRadius: 12,
+      flex: isWeb ? 0 : 1,
+      minWidth: isWeb ? 260 : undefined,
+      paddingVertical: isWeb ? 14 : spacing.sm,
+      paddingHorizontal: isWeb ? 18 : undefined,
+      borderRadius: isWeb ? 16 : 12,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.surfaceAlt,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     tabCompact: {
-      paddingVertical: 6,
+      paddingVertical: isWeb ? 12 : 6,
       flex: 0,
-      paddingHorizontal: 12,
+      minWidth: isWeb ? 96 : undefined,
+      paddingHorizontal: isWeb ? 18 : 12,
     },
     tabActive: {
       backgroundColor: colors.accent,
@@ -49,28 +75,32 @@ export default function createPlannerStyles(colors: ThemeColors) {
     },
     tabText: {
       color: colors.text,
-      fontWeight: '600',
-      fontSize: 12,
+      fontWeight: '700',
+      fontSize: isWeb ? 14 : 12,
       textAlign: 'center',
       width: '100%',
     },
     tabTextCompact: {
-      fontSize: 11,
+      fontSize: isWeb ? 13 : 11,
     },
     tabTextActive: {
       color: colors.accentText,
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 18,
-      padding: spacing.lg,
+      borderRadius: isWeb ? 24 : 18,
+      padding: isWeb ? 28 : spacing.lg,
       borderWidth: 1,
       borderColor: colors.border,
+      shadowColor: isWeb ? '#000000' : undefined,
+      shadowOpacity: isWeb ? 0.16 : undefined,
+      shadowRadius: isWeb ? 22 : undefined,
     },
     sectionTitle: {
       color: colors.text,
-      fontWeight: '700',
-      marginBottom: spacing.sm,
+      fontWeight: '800',
+      fontSize: isWeb ? 18 : undefined,
+      marginBottom: isWeb ? spacing.md : spacing.sm,
     },
     progressRow: {
       marginBottom: spacing.md,
@@ -130,11 +160,14 @@ export default function createPlannerStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.sm,
+      marginBottom: isWeb ? spacing.md : spacing.sm,
+      gap: spacing.md,
     },
     blockTitle: {
       color: colors.text,
-      fontWeight: '700',
+      fontWeight: '800',
+      fontSize: isWeb ? 18 : undefined,
+      flex: 1,
     },
     statusBadge: {
       borderRadius: 999,
@@ -163,8 +196,11 @@ export default function createPlannerStyles(colors: ThemeColors) {
     projectRow: {
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      paddingVertical: spacing.sm,
+      paddingVertical: isWeb ? spacing.md : spacing.sm,
       gap: spacing.xs,
+      flexDirection: isWeb ? 'row' : undefined,
+      alignItems: isWeb ? 'center' : undefined,
+      justifyContent: isWeb ? 'space-between' : undefined,
     },
     projectRowPlanned: {
       backgroundColor: '#facc15',
@@ -178,10 +214,12 @@ export default function createPlannerStyles(colors: ThemeColors) {
     },
     projectMain: {
       gap: spacing.xs,
+      flex: isWeb ? 1 : undefined,
     },
     projectName: {
       color: colors.text,
       fontWeight: '600',
+      fontSize: isWeb ? 15 : undefined,
     },
     projectNamePlanned: {
       color: '#0f172a',
@@ -198,6 +236,7 @@ export default function createPlannerStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.sm,
       marginTop: spacing.xs,
+      flexWrap: 'wrap',
     },
     stepper: {
       flexDirection: 'row',

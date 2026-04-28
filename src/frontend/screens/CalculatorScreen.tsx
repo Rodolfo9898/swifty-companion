@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -29,6 +29,7 @@ type RoadmapEntry = {
 export default function CalculatorScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createCalculatorStyles(colors), [colors]);
+  const isWeb = Platform.OS === 'web';
   const { user } = useAuth();
   const catalog = useMemo(() => getProjectCatalog(), []);
 
@@ -247,106 +248,172 @@ export default function CalculatorScreen({ navigation }: Props) {
   };
 
   const renderProjectItem = useCallback(
-    ({ item: project, drag, isActive }: RenderItemParams<ProjectEntry>) => (
-      <View>
-        <View style={[styles.tableRow, isActive && styles.rowDragging]}>
-          <View style={styles.rowTop}>
-            <View style={styles.cellName}>
-              <TextInput
-                style={styles.inputSmall}
-                value={project.name}
-                placeholder="Start typing..."
-                onChangeText={(value) => updateProject(project.id, 'name', value)}
-                onFocus={() => setActiveProjectId(project.id)}
-              />
-            </View>
+    ({ item: project, drag, isActive }: RenderItemParams<ProjectEntry>) => {
+      const numericGrade = Number(project.grade);
+      const clampedGrade = Number.isFinite(numericGrade) ? numericGrade : 100;
+      const atMin = clampedGrade <= 80;
+      const atMax = clampedGrade >= 125;
+      const suggestions = activeProjectId === project.id ? (
+        <View style={styles.suggestions}>
+          {searchProjects(project.name, catalog).map((entry) => (
             <TouchableOpacity
-              style={styles.dragHandle}
-              onLongPress={drag}
-              delayLongPress={180}
-              disabled={isActive}
+              key={entry.id}
+              style={styles.suggestionItem}
+              onPress={() => selectProject(project.id, entry.name, entry.experience)}
             >
-              <Text style={styles.dragHandleText}>≡</Text>
+              <Text style={styles.suggestionText}>{entry.name}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cellAction} onPress={() => removeProject(project.id)}>
-              <Text style={styles.removeText}>×</Text>
-            </TouchableOpacity>
-          </View>
+          ))}
+        </View>
+      ) : null;
 
-          <View style={styles.rowBottom}>
-            <View style={[styles.mobileGroup, styles.markGroup]}>
-              <Text style={styles.labelCompact}>Mark</Text>
-              <View style={styles.stepper}>
-                {(() => {
-                  const numericGrade = Number(project.grade);
-                  const clampedGrade = Number.isFinite(numericGrade) ? numericGrade : 100;
-                  const atMin = clampedGrade <= 80;
-                  const atMax = clampedGrade >= 125;
-                  return (
-                    <>
-                      <TouchableOpacity
-                        style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
-                        onPress={() => stepGrade(project.id, -1)}
-                        disabled={atMin}
-                      >
-                        <Text style={styles.stepButtonText}>-</Text>
-                      </TouchableOpacity>
-                      <TextInput
-                        style={[styles.inputSmall, styles.gradeInput]}
-                        keyboardType="numeric"
-                        value={project.grade}
-                        onChangeText={(value) => updateProject(project.id, 'grade', value)}
-                      />
-                      <TouchableOpacity
-                        style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
-                        onPress={() => stepGrade(project.id, 1)}
-                        disabled={atMax}
-                      >
-                        <Text style={styles.stepButtonText}>+</Text>
-                      </TouchableOpacity>
-                    </>
-                  );
-                })()}
+      if (isWeb) {
+        return (
+          <View>
+            <View style={[styles.desktopProjectRow, isActive && styles.rowDragging]}>
+              <View style={styles.desktopNameCell}>
+                <TextInput
+                  style={styles.inputSmall}
+                  value={project.name}
+                  placeholder="Start typing..."
+                  onChangeText={(value) => updateProject(project.id, 'name', value)}
+                  onFocus={() => setActiveProjectId(project.id)}
+                />
+              </View>
+              <View style={styles.desktopControlGroup}>
+                <Text style={styles.desktopControlLabel}>Mark</Text>
+                <View style={styles.stepper}>
+                  <TouchableOpacity
+                    style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                    onPress={() => stepGrade(project.id, -1)}
+                    disabled={atMin}
+                  >
+                    <Text style={styles.stepButtonText}>-</Text>
+                  </TouchableOpacity>
+                  <TextInput
+                    style={[styles.inputSmall, styles.gradeInput]}
+                    keyboardType="numeric"
+                    value={project.grade}
+                    onChangeText={(value) => updateProject(project.id, 'grade', value)}
+                  />
+                  <TouchableOpacity
+                    style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                    onPress={() => stepGrade(project.id, 1)}
+                    disabled={atMax}
+                  >
+                    <Text style={styles.stepButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.desktopControlGroup}>
+                <Text style={styles.desktopControlLabel}>Bonus</Text>
+                <TouchableOpacity
+                  style={[styles.checkbox, project.bonus && styles.checkboxActive]}
+                  onPress={() => updateProject(project.id, 'bonus', !project.bonus)}
+                >
+                  {project.bonus ? <Text style={styles.checkboxText}>✓</Text> : null}
+                </TouchableOpacity>
+              </View>
+              <View style={styles.desktopXpCell}>
+                <Text style={styles.desktopControlLabel}>XP</Text>
+                <Text style={styles.xpText}>{project.experience ? project.experience : '-'}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.dragHandle}
+                onLongPress={drag}
+                delayLongPress={180}
+                disabled={isActive}
+              >
+                <Text style={styles.dragHandleText}>≡</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cellAction} onPress={() => removeProject(project.id)}>
+                <Text style={styles.removeText}>×</Text>
+              </TouchableOpacity>
+            </View>
+            {suggestions}
+          </View>
+        );
+      }
+
+      return (
+        <View>
+          <View style={[styles.tableRow, isActive && styles.rowDragging]}>
+            <View style={styles.rowTop}>
+              <View style={styles.cellName}>
+                <TextInput
+                  style={styles.inputSmall}
+                  value={project.name}
+                  placeholder="Start typing..."
+                  onChangeText={(value) => updateProject(project.id, 'name', value)}
+                  onFocus={() => setActiveProjectId(project.id)}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.dragHandle}
+                onLongPress={drag}
+                delayLongPress={180}
+                disabled={isActive}
+              >
+                <Text style={styles.dragHandleText}>≡</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cellAction} onPress={() => removeProject(project.id)}>
+                <Text style={styles.removeText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.rowBottom}>
+              <View style={[styles.mobileGroup, styles.markGroup]}>
+                <Text style={styles.labelCompact}>Mark</Text>
+                <View style={styles.stepper}>
+                  <TouchableOpacity
+                    style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                    onPress={() => stepGrade(project.id, -1)}
+                    disabled={atMin}
+                  >
+                    <Text style={styles.stepButtonText}>-</Text>
+                  </TouchableOpacity>
+                  <TextInput
+                    style={[styles.inputSmall, styles.gradeInput]}
+                    keyboardType="numeric"
+                    value={project.grade}
+                    onChangeText={(value) => updateProject(project.id, 'grade', value)}
+                  />
+                  <TouchableOpacity
+                    style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                    onPress={() => stepGrade(project.id, 1)}
+                    disabled={atMax}
+                  >
+                    <Text style={styles.stepButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={[styles.mobileGroup, styles.bonusGroup]}>
+                <Text style={styles.labelCompact}>Bonus</Text>
+                <TouchableOpacity
+                  style={[styles.checkbox, project.bonus && styles.checkboxActive]}
+                  onPress={() => updateProject(project.id, 'bonus', !project.bonus)}
+                >
+                  {project.bonus ? <Text style={styles.checkboxText}>✓</Text> : null}
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.mobileGroup, styles.xpGroup]}>
+                <Text style={styles.labelCompact}>XP</Text>
+                <Text style={styles.xpText}>{project.experience ? project.experience : '-'}</Text>
               </View>
             </View>
-
-            <View style={[styles.mobileGroup, styles.bonusGroup]}>
-              <Text style={styles.labelCompact}>Bonus</Text>
-              <TouchableOpacity
-                style={[styles.checkbox, project.bonus && styles.checkboxActive]}
-                onPress={() => updateProject(project.id, 'bonus', !project.bonus)}
-              >
-                {project.bonus ? <Text style={styles.checkboxText}>✓</Text> : null}
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.mobileGroup, styles.xpGroup]}>
-              <Text style={styles.labelCompact}>XP</Text>
-              <Text style={styles.xpText}>{project.experience ? project.experience : '-'}</Text>
-            </View>
           </View>
+          {suggestions}
         </View>
-
-        {activeProjectId === project.id ? (
-          <View style={styles.suggestions}>
-            {searchProjects(project.name, catalog).map((entry) => (
-              <TouchableOpacity
-                key={entry.id}
-                style={styles.suggestionItem}
-                onPress={() => selectProject(project.id, entry.name, entry.experience)}
-              >
-                <Text style={styles.suggestionText}>{entry.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ) : null}
-      </View>
-    ),
-    [activeProjectId, catalog, removeProject, selectProject, stepGrade, styles, updateProject],
+      );
+    },
+    [activeProjectId, catalog, isWeb, removeProject, selectProject, stepGrade, styles, updateProject],
   );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.shell}>
       <View style={styles.card}>
         <Text style={styles.title}>XP Calculator</Text>
         <View style={styles.levelRow}>
@@ -451,6 +518,7 @@ export default function CalculatorScreen({ navigation }: Props) {
             <Text style={styles.hint}>No roadmaps saved yet.</Text>
           )}
         </View>
+      </View>
       </View>
     </ScrollView>
   );

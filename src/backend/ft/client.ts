@@ -2,13 +2,14 @@ import { userAuth } from '../auth/user';
 import { getConfig } from '../core/config';
 import { ApiClient } from '../core/http';
 import type { AuthState } from '../auth/store';
+import { Platform } from 'react-native';
 
 const TOTAL_HEADERS = ['x-total', 'x-total-count', 'x-total-counts'];
 
 export function createFtClient() {
     const config = getConfig();
     return new ApiClient({
-      baseUrl: config.apiBaseUrl,
+      baseUrl: Platform.OS === 'web' ? '/api' : config.apiBaseUrl,
       tokenSource: {
         getAccessToken: (forceRefresh?: boolean) =>
           forceRefresh ? userAuth.refresh().then((state: AuthState) => state.accessToken) : userAuth.ensureToken(),

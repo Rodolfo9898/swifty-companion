@@ -1,6 +1,7 @@
 # Swifty Companion App
 
 This repo now contains only the mobile app.
+It can also run as an Expo web app.
 
 Leaderboard backend logic was moved to a separate repository/service.  
 This app only consumes that external API via `LEADERBOARD_API_URL`.
@@ -17,6 +18,8 @@ Optional:
 
 - `API_BASE_URL` (defaults to `https://api.intra.42.fr`)
 - `EXPO_PROXY_REDIRECT`
+- `FT_WEB_CLIENT_ID` / `FT_WEB_CLIENT_SECRET` (use these if your 42 web OAuth app is separate from mobile)
+- `FT_WEB_REDIRECT_URI` (defaults to the current web origin, for example `https://localhost`)
 
 ## Local Run
 
@@ -25,7 +28,18 @@ npm install
 make run-android
 # or
 make run-ios
+# or
+npm run launch:web
 ```
+
+If your 42 redirect URI is exactly `https://localhost`, use:
+
+```sh
+npm run build:web
+sudo npm run serve:web:localhost
+```
+
+The local web server also proxies `/oauth/token`, `/api/*`, and `/leaderboard-api/*`, which is required because browsers cannot call those external services directly unless the services enable CORS for your web origin.
 
 ## Android Release Install
 

@@ -1,5 +1,5 @@
 import { AUTH_ID, sessionStore, type AuthState, type SessionStore } from './store';
-import { exchangeToken, requestLoginCode, scheduleUserRefresh } from './client';
+import { consumeWebLoginCode, exchangeToken, requestLoginCode, scheduleUserRefresh } from './client';
 
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
 
@@ -11,11 +11,12 @@ export class UserAuth {
   }
 
   async login(): Promise<AuthState> {
-    const { code, redirectUri } = await requestLoginCode();
+    const { code, redirectUri, codeVerifier } = await requestLoginCode();
     return this.persistToken({
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
+      ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
     });
   }
 
@@ -43,7 +44,20 @@ export class UserAuth {
   }
 
   async getState() {
-    return this.store.getById(AUTH_ID);
+    const current = await this.store.getById(AUTH_ID);
+    if (current) {
+      return current;
+    }
+    const webLogin = await consumeWebLoginCode();
+    if (!webLogin) {
+      return null;
+    }
+    return this.persistToken({
+      grant_type: 'authorization_code',
+      code: webLogin.code,
+      redirect_uri: webLogin.redirectUri,
+      code_verifier: webLogin.codeVerifier,
+    });
   }
 
   async logout() {

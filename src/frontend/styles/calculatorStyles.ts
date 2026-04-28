@@ -1,39 +1,53 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import type { ThemeColors } from './theme';
 import { spacing } from './theme';
 
 export default function createCalculatorStyles(colors: ThemeColors) {
+  const isWeb = Platform.OS === 'web';
+
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
     },
     content: {
-      padding: spacing.xl,
+      padding: isWeb ? 28 : spacing.xl,
+      paddingBottom: isWeb ? 80 : spacing.xl,
       gap: spacing.lg,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    shell: {
+      width: '100%',
+      maxWidth: isWeb ? 980 : undefined,
+      alignSelf: 'center',
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 18,
-      padding: spacing.lg,
+      borderRadius: isWeb ? 22 : 18,
+      padding: isWeb ? 24 : spacing.lg,
       borderWidth: 1,
       borderColor: colors.border,
+      shadowColor: isWeb ? '#000000' : undefined,
+      shadowOpacity: isWeb ? 0.18 : undefined,
+      shadowRadius: isWeb ? 24 : undefined,
     },
     title: {
       color: colors.text,
-      fontSize: 18,
-      fontWeight: '700',
-      marginBottom: spacing.md,
+      fontSize: isWeb ? 28 : 18,
+      fontWeight: '800',
+      letterSpacing: isWeb ? -0.8 : undefined,
+      marginBottom: isWeb ? spacing.md : spacing.md,
     },
     label: {
       color: colors.textSubtle,
-      fontSize: 12,
+      fontSize: isWeb ? 15 : 12,
       marginBottom: spacing.xs,
     },
     labelCompact: {
       color: colors.textMuted,
-      fontSize: 11,
-      marginBottom: 6,
+      fontSize: isWeb ? 13 : 11,
+      marginBottom: isWeb ? 8 : 6,
       textAlign: 'center',
       width: '100%',
     },
@@ -51,20 +65,20 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      marginBottom: spacing.md,
+      marginBottom: isWeb ? spacing.lg : spacing.md,
     },
     levelPill: {
       backgroundColor: colors.surfaceAlt,
       borderRadius: 999,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+      paddingHorizontal: isWeb ? 18 : 10,
+      paddingVertical: isWeb ? 8 : 4,
       borderWidth: 1,
       borderColor: colors.border,
     },
     levelPillText: {
       color: colors.text,
-      fontSize: 12,
-      fontWeight: '600',
+      fontSize: isWeb ? 18 : 12,
+      fontWeight: '800',
     },
     tableHeader: {
       flexDirection: 'row',
@@ -145,9 +159,9 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       fontWeight: '700',
     },
     dragHandle: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
+      width: 32,
+      height: 32,
+      borderRadius: 9,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.surfaceAlt,
@@ -161,7 +175,7 @@ export default function createCalculatorStyles(colors: ThemeColors) {
       lineHeight: 14,
     },
     cellAction: {
-      width: 28,
+      width: 32,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -202,9 +216,40 @@ export default function createCalculatorStyles(colors: ThemeColors) {
     },
     removeText: {
       color: colors.error,
-      fontSize: 20,
+      fontSize: 22,
       fontWeight: '700',
       lineHeight: 20,
+    },
+    desktopProjectRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    desktopNameCell: {
+      flex: 1,
+      minWidth: 260,
+    },
+    desktopControlGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flexShrink: 0,
+    },
+    desktopControlLabel: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+      flexShrink: 0,
+    },
+    desktopXpCell: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      minWidth: 86,
+      flexShrink: 0,
     },
     suggestions: {
       backgroundColor: colors.surfaceAlt,

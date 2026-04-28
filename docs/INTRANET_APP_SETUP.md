@@ -15,6 +15,8 @@ Use this after the code is ready. These steps create the OAuth2 app and give you
 - **Redirect URI**: add the redirect(s) you will actually use:
   - Expo Go: `https://auth.expo.io/@YOUR_EXPO_USERNAME/swifty-companion`
   - Standalone/dev client: `swifty-companion://redirect`
+  - Local web static callback: `https://localhost`
+  - Deployed web: your deployed site origin, for example `https://your-domain.example`
 - **Scopes**: select **public** data (the minimum needed to read profiles).
 - **Public**: leave **unchecked** unless you want the app to be public.
 
@@ -34,6 +36,9 @@ Keep them private.
    FT_CLIENT_SECRET=YOUR_42_APP_CLIENT_SECRET
    API_BASE_URL=https://api.intra.42.fr
    EXPO_PROXY_REDIRECT=https://auth.expo.io/@YOUR_EXPO_USERNAME/swifty-companion
+   FT_WEB_CLIENT_ID=YOUR_42_WEB_APP_CLIENT_ID
+   FT_WEB_CLIENT_SECRET=YOUR_42_WEB_APP_CLIENT_SECRET
+   FT_WEB_REDIRECT_URI=https://localhost
    ```
 2. Make sure `.env` is **not** committed (it’s already in `.gitignore`).
 
@@ -41,6 +46,15 @@ Keep them private.
 ```
 npm run android
 ```
+
+For local web with `https://localhost` as the registered redirect:
+
+```
+npm run build:web
+sudo npm run serve:web:localhost
+```
+
+The local HTTPS server handles `/oauth/token`, `/api/*`, and `/leaderboard-api/*` as same-origin proxies. Without that proxy, browser login/profile/leaderboard requests fail unless the external services allow CORS from `https://localhost`.
 
 If the API returns errors, double-check:
 - The scopes include **public** data.
