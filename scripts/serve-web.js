@@ -39,14 +39,29 @@ function sendText(res, status, text) {
 function handleMobileOAuthBridge(req, res) {
   const url = new URL(req.url || '/', 'https://app.local');
   const code = url.searchParams.get('code');
+  const error = url.searchParams.get('error');
   const state = url.searchParams.get('state');
-  if (!code || !state?.startsWith(mobileOAuthStatePrefix)) {
+  if ((!code && !error) || !state?.startsWith(mobileOAuthStatePrefix)) {
     return false;
   }
-  res.writeHead(302, {
-    Location: `${mobileRedirectUri}?${url.searchParams.toString()}`,
-  });
-  res.end();
+  const appUrl = `${mobileRedirectUri}?${url.searchParams.toString()}`;
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Opening Swifty Companion</title>
+    <meta http-equiv="refresh" content="0;url=${appUrl}">
+    <script>window.location.replace(${JSON.stringify(appUrl)});</script>
+  </head>
+  <body style="font-family: sans-serif; background: #0f172a; color: white; display: grid; min-height: 100vh; place-items: center;">
+    <main style="text-align: center;">
+      <p>Opening Swifty Companion...</p>
+      <p><a style="color: #38bdf8;" href="${appUrl}">Tap here if the app does not open.</a></p>
+    </main>
+  </body>
+</html>`);
   return true;
 }
 

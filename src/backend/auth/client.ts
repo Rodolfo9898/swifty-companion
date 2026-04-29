@@ -140,8 +140,10 @@ export async function requestLoginCode() {
       scopes: ['public'],
       state,
     });
-    const authorizeUrl = await request.makeAuthUrlAsync(discovery);
-    const result = await WebBrowser.openAuthSessionAsync(authorizeUrl, REDIRECT_URI);
+    const authorizeUrl = new URL(await request.makeAuthUrlAsync(discovery));
+    authorizeUrl.searchParams.set('state', state);
+    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+    const result = await WebBrowser.openAuthSessionAsync(authorizeUrl.toString(), REDIRECT_URI);
     if (result.type !== 'success') {
       throw new Error(`Login cancelled (${result.type}). Please try again.`);
     }
