@@ -39,8 +39,8 @@ export async function requireClientSecret() {
   if (!credentials.clientId || !secret) {
     throw new Error(
       Platform.OS === 'web'
-        ? 'Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.'
-        : 'Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.',
+        ? 'Missing FT_CLIENT_ID or FT_CLIENT_AUTH. Add them to a local .env file.'
+        : 'Missing FT_CLIENT_ID or FT_CLIENT_AUTH. Add them to a local .env file.',
     );
   }
   return secret;

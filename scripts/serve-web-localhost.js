@@ -14,7 +14,7 @@ const port = 443;
 const apiBaseUrl = process.env.API_BASE_URL || 'https://api.intra.42.fr';
 const leaderboardApiUrl = process.env.LEADERBOARD_API_URL || process.env.EXPO_PUBLIC_LEADERBOARD_API_URL || '';
 const ftClientId = process.env.FT_CLIENT_ID || '';
-const ftClientSecret = process.env.FT_CLIENT_SECRET || '';
+const ftClientSecret = process.env.FT_CLIENT_AUTH || '';
 
 function maskValue(value) {
   if (!value) return 'missing';
@@ -99,7 +99,7 @@ function readRequestBody(req) {
 async function proxyTokenRequest(req, res) {
   if (!ftClientId || !ftClientSecret) {
     res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Missing FT_CLIENT_ID or FT_CLIENT_SECRET.');
+    res.end('Missing FT_CLIENT_ID or FT_CLIENT_AUTH.');
     return;
   }
 

@@ -11,7 +11,7 @@ This app only consumes that external API via `LEADERBOARD_API_URL`.
 Create `.env` from `.env.example` and set:
 
 - `FT_CLIENT_ID`
-- `FT_CLIENT_SECRET`
+- `FT_CLIENT_AUTH`
 - `LEADERBOARD_API_URL` (external leaderboard service URL)
 
 Optional:
@@ -59,7 +59,7 @@ npm run serve:web
 Set these Railway environment variables:
 
 - `FT_CLIENT_ID`
-- `FT_CLIENT_SECRET`
+- `FT_CLIENT_AUTH`
 - `LEADERBOARD_API_URL`
 
 Optional:

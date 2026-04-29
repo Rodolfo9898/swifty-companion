@@ -60,7 +60,7 @@ export class FtToken implements TokenSource {
     const settings = await readLocalRuntimeSettings();
     const secret = settings.ftClientSecret.trim() || this.config.clientSecret;
     if (!this.config.clientId || !secret) {
-      throw new Error('Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.');
+      throw new Error('Missing FT_CLIENT_ID or FT_CLIENT_AUTH. Add them to a local .env file.');
     }
 
     const body = new URLSearchParams({

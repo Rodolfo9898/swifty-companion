@@ -165,7 +165,7 @@ export default function BonusSettingsScreen() {
           These values are stored locally on this device and used by app token flows.
         </Text>
 
-        <Text style={styles.label}>FT_CLIENT_SECRET</Text>
+        <Text style={styles.label}>FT_CLIENT_AUTH</Text>
         <TextInput
           style={styles.input}
           value={clientSecret}

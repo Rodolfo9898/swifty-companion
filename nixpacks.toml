@@ -1,0 +1,2 @@
+[variables]
+NIXPACKS_PATH = "/app/node_modules/.bin"
