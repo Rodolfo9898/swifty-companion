@@ -1,5 +1,5 @@
 import * as AuthSession from 'expo-auth-session';
-import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { readLocalRuntimeSettings } from '../../frontend/utils/localSettings';
@@ -8,6 +8,7 @@ import { scheduleRefresh } from '../core/refresh';
 import type { AuthState } from './store';
 
 const REDIRECT_URI = 'swifty-companion://redirect';
+const MOBILE_OAUTH_STATE_PREFIX = 'mobile-';
 const WEB_OAUTH_STORAGE_KEY = 'swifty-web-oauth';
 
 type TokenPayload = {
@@ -74,7 +75,13 @@ function toBase64Url(bytes: Uint8Array) {
 
 function randomBase64Url(byteCount = 32) {
   const bytes = new Uint8Array(byteCount);
-  crypto.getRandomValues(bytes);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
   return toBase64Url(bytes);
 }
 
@@ -92,16 +99,9 @@ function cleanWebOAuthUrl() {
 export function getRedirectUri() {
   const config = getConfig();
   if (Platform.OS === 'web') {
-    return config.webRedirectUri || getDefaultWebRedirectUri();
+    return getDefaultWebRedirectUri() || config.webRedirectUri;
   }
-  if (Constants.appOwnership === 'expo' && config.proxyRedirectUri) {
-    return config.proxyRedirectUri;
-  }
-  return AuthSession.makeRedirectUri({
-    scheme: 'swifty-companion',
-    path: 'redirect',
-    native: REDIRECT_URI,
-  });
+  return config.webRedirectUri || REDIRECT_URI;
 }
 
 export async function requestLoginCode() {
@@ -130,6 +130,35 @@ export async function requestLoginCode() {
     authorizationEndpoint: `${config.apiBaseUrl}/oauth/authorize`,
     tokenEndpoint: `${config.apiBaseUrl}/oauth/token`,
   };
+
+  if (redirectUri.startsWith('https://')) {
+    const state = `${MOBILE_OAUTH_STATE_PREFIX}${randomBase64Url(24)}`;
+    const request = new AuthSession.AuthRequest({
+      clientId: credentials.clientId,
+      redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      scopes: ['public'],
+      state,
+    });
+    const authorizeUrl = await request.makeAuthUrlAsync(discovery);
+    const result = await WebBrowser.openAuthSessionAsync(authorizeUrl, REDIRECT_URI);
+    if (result.type !== 'success') {
+      throw new Error(`Login cancelled (${result.type}). Please try again.`);
+    }
+
+    const callbackUrl = new URL(result.url);
+    const params = callbackUrl.searchParams;
+    const returnedState = params.get('state');
+    const code = params.get('code');
+    if (!code || returnedState !== state) {
+      throw new Error('Invalid OAuth callback. Please start login again.');
+    }
+    return {
+      code,
+      redirectUri,
+      codeVerifier: request.codeVerifier,
+    };
+  }
 
   const request = new AuthSession.AuthRequest({
     clientId: credentials.clientId,

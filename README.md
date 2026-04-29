@@ -18,7 +18,7 @@ Optional:
 
 - `API_BASE_URL` (defaults to `https://api.intra.42.fr`)
 - `EXPO_PROXY_REDIRECT`
-- `FT_WEB_REDIRECT_URI` (defaults to the current web origin, for example `https://localhost`)
+- `FT_WEB_REDIRECT_URI` (HTTPS OAuth redirect used by native builds, for example your Railway public URL)
 
 ## Local Run
 
@@ -67,7 +67,7 @@ Optional:
 - `API_BASE_URL` (defaults to `https://api.intra.42.fr`)
 - `FT_WEB_REDIRECT_URI` (not needed for Railway web builds; the deployed origin is used at runtime)
 
-In the 42 API application settings, the redirect URI must exactly match the public web origin used by the app, for example `https://your-app.up.railway.app`. Do not include `/login` or another route unless the app is explicitly configured to use that exact route.
+In the 42 API application settings, the redirect URI must exactly match the public web origin used by the app, for example `https://your-app.up.railway.app`. Do not include `/login` or another route unless the app is explicitly configured to use that exact route. Native builds can use that same HTTPS redirect: Railway bridges mobile-marked OAuth callbacks back into the app with `swifty-companion://redirect`.
 
 ## Android Release Install
 

@@ -15,6 +15,8 @@ const apiBaseUrl = process.env.API_BASE_URL || 'https://api.intra.42.fr';
 const leaderboardApiUrl = process.env.LEADERBOARD_API_URL || process.env.EXPO_PUBLIC_LEADERBOARD_API_URL || '';
 const ftClientId = process.env.FT_CLIENT_ID || '';
 const ftClientSecret = process.env.FT_CLIENT_AUTH || '';
+const mobileOAuthStatePrefix = 'mobile-';
+const mobileRedirectUri = 'swifty-companion://redirect';
 
 function maskValue(value) {
   if (!value) return 'missing';
@@ -69,6 +71,20 @@ function sendFile(res, filePath) {
     res.writeHead(200, { 'Content-Type': contentTypes[ext] || 'application/octet-stream' });
     res.end(content);
   });
+}
+
+function handleMobileOAuthBridge(req, res) {
+  const url = new URL(req.url || '/', 'https://app.local');
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  if (!code || !state?.startsWith(mobileOAuthStatePrefix)) {
+    return false;
+  }
+  res.writeHead(302, {
+    Location: `${mobileRedirectUri}?${url.searchParams.toString()}`,
+  });
+  res.end();
+  return true;
 }
 
 function resolveFile(urlPath) {
@@ -209,6 +225,9 @@ const server = https.createServer({
   key: fs.readFileSync(keyPath),
   cert: fs.readFileSync(certPath),
 }, (req, res) => {
+  if (handleMobileOAuthBridge(req, res)) {
+    return;
+  }
   if (req.url?.startsWith('/oauth/token')) {
     if (req.method !== 'POST') {
       res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
