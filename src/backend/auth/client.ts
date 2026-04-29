@@ -29,7 +29,7 @@ export async function requireClientSecret() {
   if (Platform.OS === 'web') {
     const credentials = getOAuthCredentials();
     if (!credentials.clientId) {
-      throw new Error('Missing FT_WEB_CLIENT_ID. Add it to a local .env file.');
+      throw new Error('Missing FT_CLIENT_ID. Add it to a local .env file.');
     }
     return '';
   }
@@ -39,7 +39,7 @@ export async function requireClientSecret() {
   if (!credentials.clientId || !secret) {
     throw new Error(
       Platform.OS === 'web'
-        ? 'Missing FT_WEB_CLIENT_ID or FT_WEB_CLIENT_SECRET. Add them to a local .env file.'
+        ? 'Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.'
         : 'Missing FT_CLIENT_ID or FT_CLIENT_SECRET. Add them to a local .env file.',
     );
   }
@@ -55,12 +55,6 @@ function getDefaultWebRedirectUri() {
 
 function getOAuthCredentials() {
   const config = getConfig();
-  if (Platform.OS === 'web') {
-    return {
-      clientId: config.webClientId || config.clientId,
-      clientSecret: config.webClientSecret || config.clientSecret,
-    };
-  }
   return {
     clientId: config.clientId,
     clientSecret: config.clientSecret,

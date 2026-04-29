@@ -48,7 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setIsAuthenticated(true);
       await refreshUser();
-    } catch {
+    } catch (err) {
+      console.error('[42 OAuth] bootstrap failed', err);
       setIsAuthenticated(false);
       setUser(null);
     } finally {
@@ -67,6 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
       await refreshUser();
       console.info('[42 OAuth] login completed');
+    } catch (err) {
+      console.error('[42 OAuth] login failed', err);
+      setIsAuthenticated(false);
+      setUser(null);
+      throw err;
     } finally {
       setLoading(false);
     }

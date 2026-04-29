@@ -18,7 +18,6 @@ Optional:
 
 - `API_BASE_URL` (defaults to `https://api.intra.42.fr`)
 - `EXPO_PROXY_REDIRECT`
-- `FT_WEB_CLIENT_ID` / `FT_WEB_CLIENT_SECRET` (use these if your 42 web OAuth app is separate from mobile)
 - `FT_WEB_REDIRECT_URI` (defaults to the current web origin, for example `https://localhost`)
 
 ## Local Run

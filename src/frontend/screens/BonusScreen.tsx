@@ -180,6 +180,9 @@ export default function BonusScreen() {
           >
             <Text style={styles.downloadSecondaryButtonText}>Open in-app transcript session</Text>
           </TouchableOpacity>
+          <Text style={styles.linkSubtitle}>
+            If the transcript page asks for login, sign in there first, then tap Auto Generate.
+          </Text>
         </View>
       </View>
 

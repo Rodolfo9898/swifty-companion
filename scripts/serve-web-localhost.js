@@ -13,8 +13,14 @@ const certPath = path.join(certDir, 'localhost-cert.pem');
 const port = 443;
 const apiBaseUrl = process.env.API_BASE_URL || 'https://api.intra.42.fr';
 const leaderboardApiUrl = process.env.LEADERBOARD_API_URL || process.env.EXPO_PUBLIC_LEADERBOARD_API_URL || '';
-const webClientId = process.env.FT_WEB_CLIENT_ID || process.env.FT_CLIENT_ID || '';
-const webClientSecret = process.env.FT_WEB_CLIENT_SECRET || process.env.FT_CLIENT_SECRET || '';
+const ftClientId = process.env.FT_CLIENT_ID || '';
+const ftClientSecret = process.env.FT_CLIENT_SECRET || '';
+
+function maskValue(value) {
+  if (!value) return 'missing';
+  if (value.length <= 10) return `${value.slice(0, 2)}...${value.slice(-2)}`;
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
 
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -91,17 +97,27 @@ function readRequestBody(req) {
 }
 
 async function proxyTokenRequest(req, res) {
-  if (!webClientId || !webClientSecret) {
+  if (!ftClientId || !ftClientSecret) {
     res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Missing FT_WEB_CLIENT_ID/FT_WEB_CLIENT_SECRET or FT_CLIENT_ID/FT_CLIENT_SECRET.');
+    res.end('Missing FT_CLIENT_ID or FT_CLIENT_SECRET.');
     return;
   }
 
   try {
     const body = await readRequestBody(req);
     const params = new URLSearchParams(body);
-    params.set('client_id', webClientId);
-    params.set('client_secret', webClientSecret);
+    const requestedClientId = params.get('client_id') || ftClientId;
+    if (requestedClientId !== ftClientId) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        error: 'invalid_client',
+        error_description: 'The web bundle client_id does not match FT_CLIENT_ID from the local .env file.',
+      }));
+      return;
+    }
+    params.set('client_id', ftClientId);
+    params.set('client_secret', ftClientSecret);
+    console.info(`[42 OAuth] token proxy using client_id=${maskValue(ftClientId)} secret=${maskValue(ftClientSecret)}`);
 
     const tokenResponse = await fetch(`${apiBaseUrl}/oauth/token`, {
       method: 'POST',
@@ -113,6 +129,7 @@ async function proxyTokenRequest(req, res) {
     const content = await tokenResponse.text();
     res.writeHead(tokenResponse.status, {
       'Content-Type': tokenResponse.headers.get('content-type') || 'application/json; charset=utf-8',
+      'x-42tools-client-id': maskValue(ftClientId),
     });
     res.end(content);
   } catch (error) {

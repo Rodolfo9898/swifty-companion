@@ -110,7 +110,9 @@ export default function TranscriptWebScreen({ route }: Props) {
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         javaScriptEnabled
+        domStorageEnabled
         injectedJavaScript={injectedJavaScript}
+        injectedJavaScriptBeforeContentLoaded={injectedJavaScript}
         onMessage={handleMessage}
         onNavigationStateChange={handleNavChange}
         onLoadStart={() => setStatus('Loading transcript page…')}

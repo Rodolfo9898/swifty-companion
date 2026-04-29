@@ -36,8 +36,6 @@ Keep them private.
    FT_CLIENT_SECRET=YOUR_42_APP_CLIENT_SECRET
    API_BASE_URL=https://api.intra.42.fr
    EXPO_PROXY_REDIRECT=https://auth.expo.io/@YOUR_EXPO_USERNAME/swifty-companion
-   FT_WEB_CLIENT_ID=YOUR_42_WEB_APP_CLIENT_ID
-   FT_WEB_CLIENT_SECRET=YOUR_42_WEB_APP_CLIENT_SECRET
    FT_WEB_REDIRECT_URI=https://localhost
    ```
 2. Make sure `.env` is **not** committed (it’s already in `.gitignore`).

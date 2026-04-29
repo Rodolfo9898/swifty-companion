@@ -44,20 +44,16 @@ export class UserAuth {
   }
 
   async getState() {
-    const current = await this.store.getById(AUTH_ID);
-    if (current) {
-      return current;
-    }
     const webLogin = await consumeWebLoginCode();
-    if (!webLogin) {
-      return null;
+    if (webLogin) {
+      return this.persistToken({
+        grant_type: 'authorization_code',
+        code: webLogin.code,
+        redirect_uri: webLogin.redirectUri,
+        code_verifier: webLogin.codeVerifier,
+      });
     }
-    return this.persistToken({
-      grant_type: 'authorization_code',
-      code: webLogin.code,
-      redirect_uri: webLogin.redirectUri,
-      code_verifier: webLogin.codeVerifier,
-    });
+    return this.store.getById(AUTH_ID);
   }
 
   async logout() {
