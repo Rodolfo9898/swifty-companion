@@ -65,9 +65,9 @@ Set these Railway environment variables:
 Optional:
 
 - `API_BASE_URL` (defaults to `https://api.intra.42.fr`)
-- `FT_WEB_REDIRECT_URI` (set this to your Railway public URL, for example `https://your-app.up.railway.app`)
+- `FT_WEB_REDIRECT_URI` (not needed for Railway web builds; the deployed origin is used at runtime)
 
-In the 42 API application settings, the redirect URI must exactly match the public web URL used by the app. If you deploy to Railway, add the Railway URL as the redirect URI, then set `FT_WEB_REDIRECT_URI` to that same value before building/deploying.
+In the 42 API application settings, the redirect URI must exactly match the public web origin used by the app, for example `https://your-app.up.railway.app`. Do not include `/login` or another route unless the app is explicitly configured to use that exact route.
 
 ## Android Release Install
 

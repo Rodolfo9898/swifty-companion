@@ -14,12 +14,13 @@ const TILES: Array<{
   title: string;
   subtitle: string;
   route: keyof RootStackParamList;
+  adminOnly?: boolean;
 }> = [
   { title: 'Search', subtitle: 'Find any 42 student.', route: 'Search' },
   { title: 'Leaderboard', subtitle: 'Compare yourself with the rest of 42.', route: 'Leaderboard' },
   { title: 'XP Calculator', subtitle: 'Plan your journey.', route: 'Calculator' },
   { title: 'RNCP Planner', subtitle: 'Plan your RNCP path.', route: 'Planner' },
-  { title: 'Quick Access', subtitle: 'Intranet shortcuts and essentials.', route: 'Bonus' },
+  { title: 'Quick Access', subtitle: 'Intranet shortcuts and essentials.', route: 'Bonus', adminOnly: true },
 ];
 
 export default function HomeScreen({ navigation }: Props) {
@@ -29,6 +30,8 @@ export default function HomeScreen({ navigation }: Props) {
   const { isRefreshingDb } = useLocalDb();
   const avatar = user?.image?.link;
   const canOpenProfile = Boolean(user?.login);
+  const isAdmin = user?.login === 'rperez-t';
+  const visibleTiles = useMemo(() => TILES.filter((tile) => !tile.adminOnly || isAdmin), [isAdmin]);
   const blockedDuringRefresh = new Set<keyof RootStackParamList>(['Search', 'Planner']);
 
   return (
@@ -68,7 +71,7 @@ export default function HomeScreen({ navigation }: Props) {
             {isRefreshingDb ? 'Temporarily locked while local DB updates.' : 'Open your current 42 profile.'}
           </Text>
         </TouchableOpacity>
-        {TILES.map((tile) => (
+        {visibleTiles.map((tile) => (
           <TouchableOpacity
             key={tile.route}
             style={[styles.tile, isRefreshingDb && blockedDuringRefresh.has(tile.route) && { opacity: 0.6 }]}

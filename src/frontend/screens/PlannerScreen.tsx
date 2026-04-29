@@ -232,9 +232,15 @@ export default function PlannerScreen() {
     setBlocks(combined);
   }, [path, rncpLevel, rncpCatalog, selectedTitle]);
 
+  const isAdmin = profile?.login === 'rperez-t';
+
   useEffect(() => {
     const login = profile?.login;
     if (!login) return;
+    if (!isAdmin) {
+      setEventCount(0);
+      return;
+    }
     const staticEvents = STATIC_EVENT_DATA[login];
     if (staticEvents?.events?.length) {
       setEventCount(staticEvents.events.length);
@@ -247,7 +253,7 @@ export default function PlannerScreen() {
       }
     };
     loadEvents();
-  }, [profile]);
+  }, [isAdmin, profile]);
 
   useEffect(() => {
     writePlannerCache({
@@ -492,7 +498,7 @@ export default function PlannerScreen() {
   }, [blocks, completedProjects, plannedProjects]);
 
   const meetsLevel = plannedLevel >= requiredLevel;
-  const meetsEvents = eventCount >= requiredEvents;
+  const meetsEvents = !isAdmin || eventCount >= requiredEvents;
   const meetsInternships = totalInternships >= requiredInternships;
   const meetsGroups = groupProjectCount >= requiredGroupProjects;
   const meetsBlocks = blockStatuses.every((entry) => entry.isDone);
@@ -792,13 +798,15 @@ export default function PlannerScreen() {
             {plannedLevel.toFixed(2)} / {requiredLevel}
           </Text>
         </View>
-        <View style={styles.progressRow}>
-          <Text style={styles.progressLabel}>Events</Text>
-          <ProgressBar value={eventCount / requiredEvents} />
-          <Text style={styles.progressHint}>
-            {eventCount} / {requiredEvents}
-          </Text>
-        </View>
+        {isAdmin ? (
+          <View style={styles.progressRow}>
+            <Text style={styles.progressLabel}>Events</Text>
+            <ProgressBar value={eventCount / requiredEvents} />
+            <Text style={styles.progressHint}>
+              {eventCount} / {requiredEvents}
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.progressRow}>
           <Text style={styles.progressLabel}>Internships</Text>
           <ProgressBar value={totalInternships / requiredInternships} />

@@ -16,7 +16,7 @@
     "serve:web": "node scripts/serve-web.js",
     "serve:web:localhost": "node scripts/serve-web-localhost.js",
     "launch:web:localhost": "npm run build:web && npm run serve:web:localhost",
-    "build:web": "EXPO_NO_CLIENT_SECRET=1 expo export --platform web"
+    "build:web": "EXPO_NO_CLIENT_SECRET=1 EXPO_WEB_RUNTIME_ORIGIN=1 expo export --platform web"
   },
   "dependencies": {
     "@react-native-picker/picker": "2.11.1",
