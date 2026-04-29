@@ -31,6 +31,8 @@ make run-ios
 npm run launch:web
 ```
 
+Use Node 22 for local and Railway builds.
+
 If your 42 redirect URI is exactly `https://localhost`, use:
 
 ```sh

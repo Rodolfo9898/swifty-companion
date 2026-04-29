@@ -2,6 +2,10 @@
   "name": "swifty-companion",
   "version": "1.0.0",
   "main": "index.ts",
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -12,7 +16,7 @@
     "serve:web": "node scripts/serve-web.js",
     "serve:web:localhost": "node scripts/serve-web-localhost.js",
     "launch:web:localhost": "npm run build:web && npm run serve:web:localhost",
-    "build:web": "expo export --platform web"
+    "build:web": "EXPO_NO_CLIENT_SECRET=1 expo export --platform web"
   },
   "dependencies": {
     "@react-native-picker/picker": "2.11.1",
