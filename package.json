@@ -9,6 +9,7 @@
     "web": "expo start --web --clear",
     "launch:web": "expo start --web --clear",
     "launch:web:https": "expo start --web --https --localhost --clear",
+    "serve:web": "node scripts/serve-web.js",
     "serve:web:localhost": "node scripts/serve-web-localhost.js",
     "launch:web:localhost": "npm run build:web && npm run serve:web:localhost",
     "build:web": "expo export --platform web"

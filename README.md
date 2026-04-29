@@ -40,6 +40,33 @@ sudo npm run serve:web:localhost
 
 The local web server also proxies `/oauth/token`, `/api/*`, and `/leaderboard-api/*`, which is required because browsers cannot call those external services directly unless the services enable CORS for your web origin.
 
+## Railway Web Deployment
+
+This repo includes `railway.json`. Railway will build the Expo web bundle with:
+
+```sh
+npm run build:web
+```
+
+and serve it with:
+
+```sh
+npm run serve:web
+```
+
+Set these Railway environment variables:
+
+- `FT_CLIENT_ID`
+- `FT_CLIENT_SECRET`
+- `LEADERBOARD_API_URL`
+
+Optional:
+
+- `API_BASE_URL` (defaults to `https://api.intra.42.fr`)
+- `FT_WEB_REDIRECT_URI` (set this to your Railway public URL, for example `https://your-app.up.railway.app`)
+
+In the 42 API application settings, the redirect URI must exactly match the public web URL used by the app. If you deploy to Railway, add the Railway URL as the redirect URI, then set `FT_WEB_REDIRECT_URI` to that same value before building/deploying.
+
 ## Android Release Install
 
 ```sh
