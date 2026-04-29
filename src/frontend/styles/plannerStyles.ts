@@ -156,6 +156,22 @@ export default function createPlannerStyles(colors: ThemeColors) {
     pillTextActive: {
       color: colors.accentText,
     },
+    experiencePillCompleted: {
+      backgroundColor: '#22c55e',
+      borderColor: '#22c55e',
+    },
+    experiencePillPlanned: {
+      backgroundColor: '#facc15',
+      borderColor: '#facc15',
+    },
+    experiencePillMeta: {
+      color: colors.textMuted,
+      fontSize: 11,
+      marginTop: 2,
+    },
+    experiencePillMetaActive: {
+      color: '#0f172a',
+    },
     blockHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -299,6 +315,13 @@ export default function createPlannerStyles(colors: ThemeColors) {
     emptyText: {
       color: colors.textMuted,
       fontSize: 12,
+    },
+    listLabel: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+      marginTop: spacing.sm,
+      marginBottom: spacing.xs,
     },
   });
 }

@@ -47,6 +47,7 @@ type Internship = {
   name: string;
   baseXP: number;
   grade: number;
+  projectId: number;
 };
 
 const XP_REQUIRED = [
@@ -56,9 +57,21 @@ const XP_REQUIRED = [
 ];
 
 const INTERNSHIPS: Internship[] = [
-  { name: 'Work Experience I', baseXP: 42000, grade: 100 },
-  { name: 'Work Experience II', baseXP: 63000, grade: 100 },
+  { name: 'Work Experience I', baseXP: 42000, grade: 100, projectId: 1638 },
+  { name: 'Work Experience II', baseXP: 63000, grade: 100, projectId: 1644 },
 ];
+
+const PROJECT_DISPLAY_NAMES: Record<number, string> = {
+  1481: '[DEPRECATED] Piscine PHP Symfony',
+  1482: '[Deprecated] Piscine Ruby on Rails',
+  1638: 'Work Experience I',
+  1644: 'Work Experience II',
+  1662: 'Startup Experience',
+  1857: 'Apprenticeship I',
+  1865: 'Apprentissage 2 ans - 2ème année',
+  2189: '[DEPRECATED] Piscine Python Django',
+  2228: '[DEPRECATED] Piscine OCaml',
+};
 
 const STATIC_EVENT_DATA: Record<string, { events: string[] }> = {
   'rperez-t': require('../data/events_rperezt.json'),
@@ -96,6 +109,10 @@ function getCompletedProjectsMap(profile: FortyTwoUser | null) {
 
 function normalizeName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function getProjectDisplayName(project: { id: number; name: string }) {
+  return PROJECT_DISPLAY_NAMES[project.id] ?? project.name.trim();
 }
 
 function calculateLevel(currentLevel: number, plannedXp: number) {
@@ -183,7 +200,7 @@ export default function PlannerScreen() {
         .filter(Boolean)
         .map((project) => ({
           id: project!.id,
-          name: project!.name,
+          name: getProjectDisplayName(project!),
           xp: project!.experience || 0,
         }));
 
@@ -251,10 +268,22 @@ export default function PlannerScreen() {
   const completedProjects = useMemo(() => getCompletedProjectsMap(profile), [profile]);
   const currentLevel = useMemo(() => getPrimaryLevel(profile?.cursus_users), [profile]);
   const { experienceProjectIds } = rncpCatalog;
+  const experienceProjects = useMemo(() => {
+    return experienceProjectIds
+      .map((id) => rncpCatalog.projectsById.get(id))
+      .filter(Boolean)
+      .map((project) => ({
+        id: project!.id,
+        name: getProjectDisplayName(project!),
+        xp: project!.experience || 0,
+      }));
+  }, [rncpCatalog, experienceProjectIds]);
   const completedExperiences = useMemo(() => {
-    const ids = new Set(experienceProjectIds);
-    return (profile?.projects_users ?? []).filter((project) => ids.has(project.project.id) && (project.validated ?? project['validated?'] ?? false));
-  }, [profile, experienceProjectIds]);
+    return experienceProjects.filter((project) => completedProjects.has(project.id));
+  }, [completedProjects, experienceProjects]);
+  const unvalidatedExperiences = useMemo(() => {
+    return experienceProjects.filter((project) => !completedProjects.has(project.id));
+  }, [completedProjects, experienceProjects]);
 
   const plannedProjectsXp = useMemo(() => {
     const unique = new Map<number, number>();
@@ -291,8 +320,31 @@ export default function PlannerScreen() {
   }, [profile]);
 
   const availableInternships = useMemo(() => {
-    return INTERNSHIPS.filter((internship) => !completedInternshipNames.has(normalizeName(internship.name)));
-  }, [completedInternshipNames]);
+    const experienceIds = new Set(experienceProjectIds);
+    return INTERNSHIPS.filter((internship) => (
+      !experienceIds.has(internship.projectId) &&
+      !completedProjects.has(internship.projectId) &&
+      !completedInternshipNames.has(normalizeName(internship.name))
+    ));
+  }, [completedInternshipNames, completedProjects, experienceProjectIds]);
+
+  useEffect(() => {
+    const experienceIds = new Set(experienceProjectIds);
+    const migrated = plannedInternships.filter((internship) => experienceIds.has(internship.projectId));
+    if (!migrated.length) return;
+    setPlannedProjects((prev) => {
+      const next = { ...prev };
+      migrated.forEach((internship) => {
+        if (completedProjects.has(internship.projectId)) return;
+        next[internship.projectId] = {
+          grade: internship.grade,
+          xp: Math.round(internship.baseXP * (internship.grade / 100)),
+        };
+      });
+      return next;
+    });
+    setPlannedInternships((prev) => prev.filter((internship) => !experienceIds.has(internship.projectId)));
+  }, [completedProjects, experienceProjectIds, plannedInternships]);
 
   useEffect(() => {
     if (!completedInternshipNames.size) return;
@@ -308,7 +360,21 @@ export default function PlannerScreen() {
   const requiredEvents = selectedTitle?.number_of_events ?? (rncpLevel === 6 ? 10 : 15);
   const requiredInternships = selectedTitle?.number_of_experiences ?? 2;
   const requiredGroupProjects = 2;
-  const totalInternships = completedExperiences.length + plannedInternships.length;
+  const plannedExperienceIds = useMemo(() => {
+    const experienceIds = new Set(experienceProjectIds);
+    const ids = new Set<number>();
+    Object.keys(plannedProjects).forEach((id) => {
+      const projectId = Number(id);
+      if (experienceIds.has(projectId)) {
+        ids.add(projectId);
+      }
+    });
+    plannedInternships.forEach((internship) => {
+      ids.add(internship.projectId);
+    });
+    return ids;
+  }, [experienceProjectIds, plannedInternships, plannedProjects]);
+  const totalInternships = completedExperiences.length + plannedExperienceIds.size;
 
   useEffect(() => {
     if (!profile || loadedGroupProjects) return;
@@ -538,6 +604,138 @@ export default function PlannerScreen() {
 
   const formatBlockName = (name: string) => name.replace('blocks.', '').replace(/_/g, ' ');
 
+  const sortPlannedFirst = (projects: PlannerProject[]) => {
+    return [...projects].sort((a, b) => {
+      const aPlanned = plannedProjects[a.id] ? 1 : 0;
+      const bPlanned = plannedProjects[b.id] ? 1 : 0;
+      return bPlanned - aPlanned;
+    });
+  };
+
+  const renderProjectRow = (project: PlannerProject) => {
+    const completed = completedProjects.get(project.id);
+    const planned = plannedProjects[project.id];
+    const plannedXp = planned ? planned.xp : project.xp;
+    return (
+      <View
+        key={project.id}
+        style={[
+          styles.projectRow,
+          completed && styles.projectRowCompleted,
+          !completed && planned && styles.projectRowPlanned,
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.projectMain}
+          onPress={() => handleProjectPress(project, planned, completed)}
+          disabled={Boolean(completed)}
+        >
+          <Text style={[
+            styles.projectName,
+            planned && styles.projectNamePlanned,
+            completed && styles.projectNamePlanned,
+          ]}>
+            {project.name}
+          </Text>
+          <Text style={[
+            styles.projectMeta,
+            planned && styles.projectMetaPlanned,
+            completed && styles.projectMetaPlanned,
+          ]}>
+            {completed
+              ? `Completed • XP ${Math.round((project.xp * completed.finalMark) / 100)}`
+              : planned
+                ? `Planned • XP ${plannedXp}`
+                : `XP ${project.xp}`}
+          </Text>
+        </TouchableOpacity>
+        {!completed ? (
+          <View style={styles.projectActions}>
+            {planned ? (
+              <>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => togglePlan(project)}
+                >
+                  <Text style={styles.actionButtonText}>Remove</Text>
+                </TouchableOpacity>
+                {activeProjectId === project.id ? (
+                  <View style={styles.stepper}>
+                    {(() => {
+                      const atMin = planned.grade <= GRADE_MIN;
+                      const atMax = planned.grade >= GRADE_MAX;
+                      return (
+                        <>
+                          <TouchableOpacity
+                            style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                            onPress={() => stepPlanGrade(project, -1)}
+                            disabled={atMin}
+                          >
+                            <Text style={styles.stepButtonText}>-</Text>
+                          </TouchableOpacity>
+                          <TextInput
+                            style={[styles.gradeInput, styles.gradeInputCentered]}
+                            value={String(planned.grade)}
+                            onChangeText={(value) => updatePlanGrade(project, value)}
+                            keyboardType="numeric"
+                          />
+                          <TouchableOpacity
+                            style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                            onPress={() => stepPlanGrade(project, 1)}
+                            disabled={atMax}
+                          >
+                            <Text style={styles.stepButtonText}>+</Text>
+                          </TouchableOpacity>
+                        </>
+                      );
+                    })()}
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  const renderExperiencePill = (project: PlannerProject) => {
+    const completed = completedProjects.get(project.id);
+    const planned = plannedProjects[project.id];
+    const isActive = activeProjectId === project.id;
+    const plannedXp = planned ? planned.xp : project.xp;
+    return (
+      <TouchableOpacity
+        key={`experience-pill-${project.id}`}
+        style={[
+          styles.pill,
+          completed && styles.experiencePillCompleted,
+          !completed && planned && styles.experiencePillPlanned,
+          isActive && styles.pillActive,
+        ]}
+        onPress={() => handleProjectPress(project, planned, completed)}
+        disabled={Boolean(completed)}
+      >
+        <Text style={[
+          styles.pillText,
+          (completed || planned || isActive) && styles.pillTextActive,
+        ]}>
+          {project.name}
+        </Text>
+        <Text style={[
+          styles.experiencePillMeta,
+          (completed || planned || isActive) && styles.experiencePillMetaActive,
+        ]}>
+          {completed
+            ? `Completed • XP ${Math.round((project.xp * completed.finalMark) / 100)}`
+            : planned
+              ? `Planned • XP ${plannedXp}`
+              : `XP ${project.xp}`}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
@@ -620,9 +818,65 @@ export default function PlannerScreen() {
         </View>
       </View>
 
-      {availableInternships.length || plannedInternships.length ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Planned internships</Text>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Plan work experience</Text>
+        {completedExperiences.length ? (
+          <>
+            <Text style={styles.listLabel}>List of validated projects:</Text>
+            <View style={styles.pillRow}>
+              {completedExperiences.map(renderExperiencePill)}
+            </View>
+          </>
+        ) : null}
+        <Text style={styles.listLabel}>List of unvalidated projects:</Text>
+        <View style={styles.pillRow}>
+          {sortPlannedFirst(unvalidatedExperiences).map(renderExperiencePill)}
+        </View>
+        {activeProjectId && plannedProjects[activeProjectId] && experienceProjects.some((project) => project.id === activeProjectId) ? (
+          <View style={styles.projectActions}>
+            {(() => {
+              const project = experienceProjects.find((entry) => entry.id === activeProjectId);
+              const planned = project ? plannedProjects[project.id] : undefined;
+              if (!project || !planned) return null;
+              const atMin = planned.grade <= GRADE_MIN;
+              const atMax = planned.grade >= GRADE_MAX;
+              return (
+                <>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => togglePlan(project)}
+                  >
+                    <Text style={styles.actionButtonText}>Remove</Text>
+                  </TouchableOpacity>
+                  <View style={styles.stepper}>
+                    <TouchableOpacity
+                      style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
+                      onPress={() => stepPlanGrade(project, -1)}
+                      disabled={atMin}
+                    >
+                      <Text style={styles.stepButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <TextInput
+                      style={[styles.gradeInput, styles.gradeInputCentered]}
+                      value={String(planned.grade)}
+                      onChangeText={(value) => updatePlanGrade(project, value)}
+                      keyboardType="numeric"
+                    />
+                    <TouchableOpacity
+                      style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
+                      onPress={() => stepPlanGrade(project, 1)}
+                      disabled={atMax}
+                    >
+                      <Text style={styles.stepButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              );
+            })()}
+          </View>
+        ) : null}
+        {availableInternships.length || plannedInternships.length ? (
+          <>
           {availableInternships.length ? (
             <View style={styles.pillRow}>
               {availableInternships.map((internship) => {
@@ -697,8 +951,9 @@ export default function PlannerScreen() {
               </View>
             ))
           )}
-        </View>
-      ) : null}
+          </>
+        ) : null}
+      </View>
 
       {blockStatuses.map(({ block, completedCount, plannedCount, xpTotal, isDone }) => {
         return (
@@ -727,92 +982,22 @@ export default function PlannerScreen() {
                 {completedCount + plannedCount} / {block.min_projects}
               </Text>
             </View>
-            {block.projects.map((project) => {
-              const completed = completedProjects.get(project.id);
-              const planned = plannedProjects[project.id];
-              const plannedXp = planned ? planned.xp : project.xp;
+            {(() => {
+              const validatedProjects = block.projects.filter((project) => completedProjects.has(project.id));
+              const unvalidatedProjects = sortPlannedFirst(block.projects.filter((project) => !completedProjects.has(project.id)));
               return (
-                <View
-                  key={project.id}
-                  style={[
-                    styles.projectRow,
-                    completed && styles.projectRowCompleted,
-                    !completed && planned && styles.projectRowPlanned,
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.projectMain}
-                    onPress={() => handleProjectPress(project, planned, completed)}
-                    disabled={Boolean(completed)}
-                  >
-                    <Text style={[
-                      styles.projectName,
-                      planned && styles.projectNamePlanned,
-                      completed && styles.projectNamePlanned,
-                    ]}>
-                      {project.name}
-                    </Text>
-                    <Text style={[
-                      styles.projectMeta,
-                      planned && styles.projectMetaPlanned,
-                      completed && styles.projectMetaPlanned,
-                    ]}>
-                      {completed
-                        ? `Completed • XP ${Math.round((project.xp * completed.finalMark) / 100)}`
-                        : planned
-                          ? `Planned • XP ${plannedXp}`
-                          : `XP ${project.xp}`}
-                    </Text>
-                  </TouchableOpacity>
-                  {!completed ? (
-                    <View style={styles.projectActions}>
-                      {planned ? (
-                        <>
-                          <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => togglePlan(project)}
-                          >
-                            <Text style={styles.actionButtonText}>Remove</Text>
-                          </TouchableOpacity>
-                          {activeProjectId === project.id ? (
-                            <View style={styles.stepper}>
-                              {(() => {
-                                const atMin = planned.grade <= GRADE_MIN;
-                                const atMax = planned.grade >= GRADE_MAX;
-                                return (
-                                  <>
-                                    <TouchableOpacity
-                                      style={[styles.stepButton, atMin && styles.stepButtonDisabled]}
-                                      onPress={() => stepPlanGrade(project, -1)}
-                                      disabled={atMin}
-                                    >
-                                      <Text style={styles.stepButtonText}>-</Text>
-                                    </TouchableOpacity>
-                                    <TextInput
-                                      style={[styles.gradeInput, styles.gradeInputCentered]}
-                                      value={String(planned.grade)}
-                                      onChangeText={(value) => updatePlanGrade(project, value)}
-                                      keyboardType="numeric"
-                                    />
-                                    <TouchableOpacity
-                                      style={[styles.stepButton, atMax && styles.stepButtonDisabled]}
-                                      onPress={() => stepPlanGrade(project, 1)}
-                                      disabled={atMax}
-                                    >
-                                      <Text style={styles.stepButtonText}>+</Text>
-                                    </TouchableOpacity>
-                                  </>
-                                );
-                              })()}
-                            </View>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </View>
+                <>
+                  {validatedProjects.length ? (
+                    <>
+                      <Text style={styles.listLabel}>List of validated projects:</Text>
+                      {validatedProjects.map(renderProjectRow)}
+                    </>
                   ) : null}
-                </View>
+                  <Text style={styles.listLabel}>List of unvalidated projects:</Text>
+                  {unvalidatedProjects.map(renderProjectRow)}
+                </>
               );
-            })}
+            })()}
           </View>
         );
       })}

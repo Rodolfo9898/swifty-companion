@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import type { LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import BonusScreen from './screens/BonusScreen';
@@ -59,6 +60,27 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const webLinking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['https://localhost', 'http://localhost', '/'],
+  config: {
+    screens: {
+      Login: 'login',
+      Home: '',
+      Search: 'search',
+      Profile: 'profile/:login',
+      Bonus: 'bonus',
+      BonusSettings: 'bonus/settings',
+      Leaderboard: 'leaderboard',
+      Calculator: 'calculator',
+      CalculatorProgress: 'calculator/progress',
+      TranscriptWeb: 'transcript',
+      IntranetWeb: 'intranet',
+      Planner: 'planner',
+      DevCache: 'dev/cache',
+    },
+  },
+};
+
 function AppNavigator() {
   const { colors, name, toggleTheme } = useTheme();
   const styles = useMemo(() => createAppRootStyles(colors), [colors]);
@@ -83,11 +105,13 @@ function AppNavigator() {
   );
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={Platform.OS === 'web' ? webLinking : undefined}>
       <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: colors.background },
+          headerBackVisible: Platform.OS !== 'web',
+          headerLeft: Platform.OS === 'web' ? () => null : undefined,
           headerTintColor: '#000000',
           headerTitleStyle: { fontWeight: '600' },
           headerTitleAlign: 'left',
