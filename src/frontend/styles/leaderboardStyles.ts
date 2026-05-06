@@ -263,21 +263,6 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
-    blackholedBadge: {
-      backgroundColor: '#dc2626',
-      borderColor: '#f87171',
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingHorizontal: 6,
-      paddingVertical: 1,
-    },
-    blackholedBadgeText: {
-      color: '#fef2f2',
-      fontSize: 9,
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-    },
     display: {
       color: colors.textSubtle,
       marginTop: 2,

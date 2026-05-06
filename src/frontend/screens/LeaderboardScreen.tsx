@@ -137,28 +137,8 @@ const hasTranscenderBadge = (entry: BadgeCarrier) => {
   return getBadgeTokens(entry).includes('transcender');
 };
 
-const getMilestoneDeadline = (entry: BadgeCarrier) =>
-  entry.milestone_deadline_at ||
-  entry.milestone_deadline ||
-  entry.deadline_at ||
-  entry.deadline ||
-  entry.blackholed_at ||
-  null;
-
-const isPastDeadline = (value?: string | null) => {
-  if (!value) return false;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && timestamp < Date.now();
-};
-
-const hasBlackholedBadge = (entry: BadgeCarrier) => {
-  if (hasAlumniBadge(entry) || hasTranscenderBadge(entry)) return false;
-  return isPastDeadline(getMilestoneDeadline(entry));
-};
-
 const EMPTY_BADGE_LOGINS = {
   alumni: new Set<string>(),
-  blackholed: new Set<string>(),
   transcender: new Set<string>(),
 };
 
@@ -466,7 +446,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           sort: 'asc' as const,
           perPage: 100,
         };
-        const fetchLogins = async (badge: 'alumni' | 'blackholed' | 'transcender') => {
+        const fetchLogins = async (badge: 'alumni' | 'transcender') => {
           const logins = new Set<string>();
           let pageIndex = 1;
           let totalPagesForBadge = 1;
@@ -476,10 +456,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
               badge,
               page: pageIndex,
             });
-            response.data.forEach((entry) => {
-              if (badge === 'blackholed' && !hasBlackholedBadge(entry)) return;
-              logins.add(entry.login);
-            });
+            response.data.forEach((entry) => logins.add(entry.login));
             totalPagesForBadge = response.total
               ? Math.max(1, Math.ceil(response.total / (response.perPage || 100)))
               : pageIndex;
@@ -488,13 +465,12 @@ export default function LeaderboardScreen({ navigation }: Props) {
           }
           return logins;
         };
-        const [alumni, blackholed, transcender] = await Promise.all([
+        const [alumni, transcender] = await Promise.all([
           fetchLogins('alumni'),
-          fetchLogins('blackholed'),
           fetchLogins('transcender'),
         ]);
         if (!cancelled) {
-          setBadgeLogins({ alumni, blackholed, transcender });
+          setBadgeLogins({ alumni, transcender });
         }
       } catch {
         if (!cancelled) {
@@ -944,16 +920,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
                   </View>
                 ) : null}
-                {!(
-                  hasAlumniBadge(user as UserSummary & BadgeCarrier) ||
-                  hasTranscenderBadge(user as UserSummary & BadgeCarrier) ||
-                  badgeLogins.alumni.has(user.login) ||
-                  badgeLogins.transcender.has(user.login)
-                ) && (hasBlackholedBadge(user as UserSummary & BadgeCarrier) || badgeLogins.blackholed.has(user.login)) ? (
-                  <View style={styles.blackholedBadge}>
-                    <Text style={styles.blackholedBadgeText}>Blackholed</Text>
-                  </View>
-                ) : null}
               </View>
               {shownFields.displayname ? (
                 <Text style={styles.display}>{user.displayname ?? 'Unknown'}</Text>
@@ -1023,16 +989,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
                 {hasAlumniBadge(entry) || badgeLogins.alumni.has(entry.login) ? (
                   <View style={styles.alumniBadge}>
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
-                  </View>
-                ) : null}
-                {!(
-                  hasAlumniBadge(entry) ||
-                  hasTranscenderBadge(entry) ||
-                  badgeLogins.alumni.has(entry.login) ||
-                  badgeLogins.transcender.has(entry.login)
-                ) && (hasBlackholedBadge(entry) || badgeLogins.blackholed.has(entry.login)) ? (
-                  <View style={styles.blackholedBadge}>
-                    <Text style={styles.blackholedBadgeText}>Blackholed</Text>
                   </View>
                 ) : null}
               </View>
