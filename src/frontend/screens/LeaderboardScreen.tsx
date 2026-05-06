@@ -97,22 +97,32 @@ type BadgeCarrier = {
   badges?: string[] | string | null;
   alumni?: boolean | null;
   is_alumni?: boolean | null;
+  blackholed_at?: string | null;
 };
 
-const hasAlumniBadge = (entry: BadgeCarrier) => {
-  if (entry.alumni || entry.is_alumni) return true;
+const getBadgeTokens = (entry: BadgeCarrier) => {
   const rawBadges = typeof entry.badges === 'string'
     ? entry.badges.split(',')
     : Array.isArray(entry.badges)
       ? entry.badges
       : [];
-  const badges = [
+  return [
     ...rawBadges,
     entry.badge,
   ]
     .filter(Boolean)
-    .map((value) => String(value).toLowerCase());
-  return badges.some((value) => value.split(/[^a-z0-9_-]+/).includes('alumni'));
+    .flatMap((value) => String(value).toLowerCase().split(/[^a-z0-9_-]+/))
+    .filter(Boolean);
+};
+
+const hasAlumniBadge = (entry: BadgeCarrier) => {
+  if (entry.alumni || entry.is_alumni) return true;
+  return getBadgeTokens(entry).includes('alumni');
+};
+
+const hasBlackholedBadge = (entry: BadgeCarrier) => {
+  if (entry.blackholed_at) return true;
+  return getBadgeTokens(entry).includes('blackholed');
 };
 
 const isFortyTwoCursus = (user: CursusEntry) => {
@@ -826,6 +836,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
                   </View>
                 ) : null}
+                {hasBlackholedBadge(user as UserSummary & BadgeCarrier) ? (
+                  <View style={styles.blackholedBadge}>
+                    <Text style={styles.blackholedBadgeText}>Blackholed</Text>
+                  </View>
+                ) : null}
               </View>
               {shownFields.displayname ? (
                 <Text style={styles.display}>{user.displayname ?? 'Unknown'}</Text>
@@ -895,6 +910,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
                 {hasAlumniBadge(entry) ? (
                   <View style={styles.alumniBadge}>
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
+                  </View>
+                ) : null}
+                {hasBlackholedBadge(entry) ? (
+                  <View style={styles.blackholedBadge}>
+                    <Text style={styles.blackholedBadgeText}>Blackholed</Text>
                   </View>
                 ) : null}
               </View>
