@@ -18,6 +18,10 @@ export interface LeaderboardUser {
   correction_points?: number | null;
   wallets?: number | null;
   blackholed_at?: string | null;
+  milestone_deadline?: string | null;
+  milestone_deadline_at?: string | null;
+  deadline?: string | null;
+  deadline_at?: string | null;
   coalition_name?: string | null;
   promo?: string | null;
   badge?: string | null;

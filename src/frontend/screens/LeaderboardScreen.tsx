@@ -86,10 +86,16 @@ type RankedEntry = {
   weekly_logtime?: number | null;
   coalition_name?: string | null;
   blackholed_at?: string | null;
+  milestone_deadline?: string | null;
+  milestone_deadline_at?: string | null;
+  deadline?: string | null;
+  deadline_at?: string | null;
   badge?: string | null;
   badges?: string[] | null;
   alumni?: boolean | null;
   is_alumni?: boolean | null;
+  transcender?: boolean | null;
+  is_transcender?: boolean | null;
 };
 
 type BadgeCarrier = {
@@ -97,7 +103,13 @@ type BadgeCarrier = {
   badges?: string[] | string | null;
   alumni?: boolean | null;
   is_alumni?: boolean | null;
+  transcender?: boolean | null;
+  is_transcender?: boolean | null;
   blackholed_at?: string | null;
+  milestone_deadline?: string | null;
+  milestone_deadline_at?: string | null;
+  deadline?: string | null;
+  deadline_at?: string | null;
 };
 
 const getBadgeTokens = (entry: BadgeCarrier) => {
@@ -120,14 +132,34 @@ const hasAlumniBadge = (entry: BadgeCarrier) => {
   return getBadgeTokens(entry).includes('alumni');
 };
 
+const hasTranscenderBadge = (entry: BadgeCarrier) => {
+  if (entry.transcender || entry.is_transcender) return true;
+  return getBadgeTokens(entry).includes('transcender');
+};
+
+const getMilestoneDeadline = (entry: BadgeCarrier) =>
+  entry.milestone_deadline_at ||
+  entry.milestone_deadline ||
+  entry.deadline_at ||
+  entry.deadline ||
+  entry.blackholed_at ||
+  null;
+
+const isPastDeadline = (value?: string | null) => {
+  if (!value) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && timestamp < Date.now();
+};
+
 const hasBlackholedBadge = (entry: BadgeCarrier) => {
-  if (entry.blackholed_at) return true;
-  return getBadgeTokens(entry).includes('blackholed');
+  if (hasAlumniBadge(entry) || hasTranscenderBadge(entry)) return false;
+  return isPastDeadline(getMilestoneDeadline(entry));
 };
 
 const EMPTY_BADGE_LOGINS = {
   alumni: new Set<string>(),
   blackholed: new Set<string>(),
+  transcender: new Set<string>(),
 };
 
 const isFortyTwoCursus = (user: CursusEntry) => {
@@ -281,11 +313,17 @@ export default function LeaderboardScreen({ navigation }: Props) {
           correction_points: entry.correction_points ?? undefined,
           wallets: entry.wallets ?? undefined,
           blackholed_at: entry.blackholed_at ?? undefined,
+          milestone_deadline: entry.milestone_deadline ?? undefined,
+          milestone_deadline_at: entry.milestone_deadline_at ?? undefined,
+          deadline: entry.deadline ?? undefined,
+          deadline_at: entry.deadline_at ?? undefined,
           coalition_name: entry.coalition_name ?? undefined,
           badge: entry.badge ?? undefined,
           badges: entry.badges ?? undefined,
           alumni: entry.alumni ?? undefined,
           is_alumni: entry.is_alumni ?? undefined,
+          transcender: entry.transcender ?? undefined,
+          is_transcender: entry.is_transcender ?? undefined,
           cursus_users: [
             {
               level: entry.level ?? 0,
@@ -428,7 +466,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           sort: 'asc' as const,
           perPage: 100,
         };
-        const fetchLogins = async (badge: 'alumni' | 'blackholed') => {
+        const fetchLogins = async (badge: 'alumni' | 'blackholed' | 'transcender') => {
           const logins = new Set<string>();
           let pageIndex = 1;
           let totalPagesForBadge = 1;
@@ -438,7 +476,10 @@ export default function LeaderboardScreen({ navigation }: Props) {
               badge,
               page: pageIndex,
             });
-            response.data.forEach((entry) => logins.add(entry.login));
+            response.data.forEach((entry) => {
+              if (badge === 'blackholed' && !hasBlackholedBadge(entry)) return;
+              logins.add(entry.login);
+            });
             totalPagesForBadge = response.total
               ? Math.max(1, Math.ceil(response.total / (response.perPage || 100)))
               : pageIndex;
@@ -447,12 +488,13 @@ export default function LeaderboardScreen({ navigation }: Props) {
           }
           return logins;
         };
-        const [alumni, blackholed] = await Promise.all([
+        const [alumni, blackholed, transcender] = await Promise.all([
           fetchLogins('alumni'),
           fetchLogins('blackholed'),
+          fetchLogins('transcender'),
         ]);
         if (!cancelled) {
-          setBadgeLogins({ alumni, blackholed });
+          setBadgeLogins({ alumni, blackholed, transcender });
         }
       } catch {
         if (!cancelled) {
@@ -502,10 +544,16 @@ export default function LeaderboardScreen({ navigation }: Props) {
             weekly_logtime: entry.weekly_logtime ?? undefined,
             coalition_name: entry.coalition_name ?? undefined,
             blackholed_at: entry.blackholed_at ?? undefined,
+            milestone_deadline: entry.milestone_deadline ?? undefined,
+            milestone_deadline_at: entry.milestone_deadline_at ?? undefined,
+            deadline: entry.deadline ?? undefined,
+            deadline_at: entry.deadline_at ?? undefined,
             badge: entry.badge ?? undefined,
             badges: entry.badges ?? undefined,
             alumni: entry.alumni ?? undefined,
             is_alumni: entry.is_alumni ?? undefined,
+            transcender: entry.transcender ?? undefined,
+            is_transcender: entry.is_transcender ?? undefined,
           })));
           setRankingUpdatedAt(Date.now());
           setRankingComplete(true);
@@ -896,7 +944,12 @@ export default function LeaderboardScreen({ navigation }: Props) {
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
                   </View>
                 ) : null}
-                {hasBlackholedBadge(user as UserSummary & BadgeCarrier) || badgeLogins.blackholed.has(user.login) ? (
+                {!(
+                  hasAlumniBadge(user as UserSummary & BadgeCarrier) ||
+                  hasTranscenderBadge(user as UserSummary & BadgeCarrier) ||
+                  badgeLogins.alumni.has(user.login) ||
+                  badgeLogins.transcender.has(user.login)
+                ) && (hasBlackholedBadge(user as UserSummary & BadgeCarrier) || badgeLogins.blackholed.has(user.login)) ? (
                   <View style={styles.blackholedBadge}>
                     <Text style={styles.blackholedBadgeText}>Blackholed</Text>
                   </View>
@@ -972,7 +1025,12 @@ export default function LeaderboardScreen({ navigation }: Props) {
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
                   </View>
                 ) : null}
-                {hasBlackholedBadge(entry) || badgeLogins.blackholed.has(entry.login) ? (
+                {!(
+                  hasAlumniBadge(entry) ||
+                  hasTranscenderBadge(entry) ||
+                  badgeLogins.alumni.has(entry.login) ||
+                  badgeLogins.transcender.has(entry.login)
+                ) && (hasBlackholedBadge(entry) || badgeLogins.blackholed.has(entry.login)) ? (
                   <View style={styles.blackholedBadge}>
                     <Text style={styles.blackholedBadgeText}>Blackholed</Text>
                   </View>
