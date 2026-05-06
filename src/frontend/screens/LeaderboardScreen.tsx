@@ -125,6 +125,11 @@ const hasBlackholedBadge = (entry: BadgeCarrier) => {
   return getBadgeTokens(entry).includes('blackholed');
 };
 
+const EMPTY_BADGE_LOGINS = {
+  alumni: new Set<string>(),
+  blackholed: new Set<string>(),
+};
+
 const isFortyTwoCursus = (user: CursusEntry) => {
   const slug = user.cursus?.slug?.toLowerCase() ?? '';
   const name = user.cursus?.name?.toLowerCase() ?? '';
@@ -199,6 +204,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [highlightLogin, setHighlightLogin] = useState<string | null>(null);
   const [isJumping, setIsJumping] = useState(false);
+  const [badgeLogins, setBadgeLogins] = useState(EMPTY_BADGE_LOGINS);
   const [sortField, setSortField] = useState<SortField>('level');
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [shownFields, setShownFields] = useState<Record<SortField, boolean>>(() => ({
@@ -405,6 +411,60 @@ export default function LeaderboardScreen({ navigation }: Props) {
     setAppliedSearch(searchText.trim());
     setHighlightLogin(null);
   }, [campusId, searchText, promo, sortField, sortOrder, pageSize]);
+
+  useEffect(() => {
+    if (!useBackend) {
+      setBadgeLogins(EMPTY_BADGE_LOGINS);
+      return;
+    }
+    let cancelled = false;
+    const loadBadgeLogins = async () => {
+      try {
+        const baseParams = {
+          campusId: campusId === ALL_CAMPUSES ? undefined : campusId,
+          promo: activeTab === 'compare' ? promo || undefined : undefined,
+          search: activeTab === 'compare' ? appliedSearch || undefined : undefined,
+          sortField: 'login',
+          sort: 'asc' as const,
+          perPage: 100,
+        };
+        const fetchLogins = async (badge: 'alumni' | 'blackholed') => {
+          const logins = new Set<string>();
+          let pageIndex = 1;
+          let totalPagesForBadge = 1;
+          while (pageIndex <= totalPagesForBadge && pageIndex <= 200) {
+            const response = await leaderboardRepo.fetchPage({
+              ...baseParams,
+              badge,
+              page: pageIndex,
+            });
+            response.data.forEach((entry) => logins.add(entry.login));
+            totalPagesForBadge = response.total
+              ? Math.max(1, Math.ceil(response.total / (response.perPage || 100)))
+              : pageIndex;
+            if (!response.data.length) break;
+            pageIndex += 1;
+          }
+          return logins;
+        };
+        const [alumni, blackholed] = await Promise.all([
+          fetchLogins('alumni'),
+          fetchLogins('blackholed'),
+        ]);
+        if (!cancelled) {
+          setBadgeLogins({ alumni, blackholed });
+        }
+      } catch {
+        if (!cancelled) {
+          setBadgeLogins(EMPTY_BADGE_LOGINS);
+        }
+      }
+    };
+    loadBadgeLogins();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, appliedSearch, campusId, promo, useBackend]);
 
   useEffect(() => {
     if (!highlightLogin) return;
@@ -831,12 +891,12 @@ export default function LeaderboardScreen({ navigation }: Props) {
             <View style={styles.infoBlock}>
               <View style={styles.loginRow}>
                 <Text style={styles.login}>{user.login}</Text>
-                {hasAlumniBadge(user as UserSummary & BadgeCarrier) ? (
+                {hasAlumniBadge(user as UserSummary & BadgeCarrier) || badgeLogins.alumni.has(user.login) ? (
                   <View style={styles.alumniBadge}>
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
                   </View>
                 ) : null}
-                {hasBlackholedBadge(user as UserSummary & BadgeCarrier) ? (
+                {hasBlackholedBadge(user as UserSummary & BadgeCarrier) || badgeLogins.blackholed.has(user.login) ? (
                   <View style={styles.blackholedBadge}>
                     <Text style={styles.blackholedBadgeText}>Blackholed</Text>
                   </View>
@@ -907,12 +967,12 @@ export default function LeaderboardScreen({ navigation }: Props) {
             <View style={styles.infoBlock}>
               <View style={styles.loginRow}>
                 <Text style={styles.login}>{entry.login}</Text>
-                {hasAlumniBadge(entry) ? (
+                {hasAlumniBadge(entry) || badgeLogins.alumni.has(entry.login) ? (
                   <View style={styles.alumniBadge}>
                     <Text style={styles.alumniBadgeText}>Alumni</Text>
                   </View>
                 ) : null}
-                {hasBlackholedBadge(entry) ? (
+                {hasBlackholedBadge(entry) || badgeLogins.blackholed.has(entry.login) ? (
                   <View style={styles.blackholedBadge}>
                     <Text style={styles.blackholedBadgeText}>Blackholed</Text>
                   </View>

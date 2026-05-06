@@ -49,6 +49,7 @@ export class LeaderboardRepo {
     perPage?: number;
     sort?: 'asc' | 'desc';
     meLogin?: string;
+    badge?: string;
   }) {
     if (!this.api.client) {
       return getLocalSqliteLeaderboardPage(params);
@@ -62,6 +63,7 @@ export class LeaderboardRepo {
     if (params.perPage) search.set('perPage', String(params.perPage));
     if (params.sort) search.set('sort', params.sort);
     if (params.meLogin) search.set('meLogin', params.meLogin);
+    if (params.badge) search.set('badge', params.badge);
     const suffix = search.toString();
     const { data } = await this.api.client.request<LeaderboardPage>(`/leaderboard${suffix ? `?${suffix}` : ''}`);
     return data;

@@ -57,6 +57,7 @@ type LeaderboardPageParams = {
   perPage?: number;
   sort?: 'asc' | 'desc';
   meLogin?: string;
+  badge?: string;
 };
 
 type LeaderboardTopParams = {

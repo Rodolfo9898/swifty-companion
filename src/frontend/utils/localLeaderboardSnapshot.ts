@@ -60,6 +60,7 @@ export type LocalLeaderboardPageParams = {
   perPage?: number;
   sort?: 'asc' | 'desc';
   meLogin?: string;
+  badge?: string;
 };
 
 export type LocalLeaderboardTopParams = {
