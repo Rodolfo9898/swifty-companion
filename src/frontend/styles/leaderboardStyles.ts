@@ -242,6 +242,27 @@ export default function createLeaderboardStyles(colors: ThemeColors) {
       fontWeight: '700',
       fontSize: 14,
     },
+    loginRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    alumniBadge: {
+      backgroundColor: '#6b7280',
+      borderColor: '#9ca3af',
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+    },
+    alumniBadgeText: {
+      color: '#f9fafb',
+      fontSize: 9,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
     display: {
       color: colors.textSubtle,
       marginTop: 2,

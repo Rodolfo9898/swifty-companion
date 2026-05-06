@@ -25,6 +25,10 @@ type SnapshotUser = {
   blackholed_at?: string | null;
   coalition_name?: string | null;
   promo?: string | null;
+  badge?: string | null;
+  badges?: string[] | null;
+  alumni?: boolean | null;
+  is_alumni?: boolean | null;
   updatedAt?: number | null;
 };
 

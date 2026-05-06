@@ -86,6 +86,33 @@ type RankedEntry = {
   weekly_logtime?: number | null;
   coalition_name?: string | null;
   blackholed_at?: string | null;
+  badge?: string | null;
+  badges?: string[] | null;
+  alumni?: boolean | null;
+  is_alumni?: boolean | null;
+};
+
+type BadgeCarrier = {
+  badge?: string | null;
+  badges?: string[] | string | null;
+  alumni?: boolean | null;
+  is_alumni?: boolean | null;
+};
+
+const hasAlumniBadge = (entry: BadgeCarrier) => {
+  if (entry.alumni || entry.is_alumni) return true;
+  const rawBadges = typeof entry.badges === 'string'
+    ? entry.badges.split(',')
+    : Array.isArray(entry.badges)
+      ? entry.badges
+      : [];
+  const badges = [
+    ...rawBadges,
+    entry.badge,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+  return badges.some((value) => value.split(/[^a-z0-9_-]+/).includes('alumni'));
 };
 
 const isFortyTwoCursus = (user: CursusEntry) => {
@@ -239,6 +266,10 @@ export default function LeaderboardScreen({ navigation }: Props) {
           wallets: entry.wallets ?? undefined,
           blackholed_at: entry.blackholed_at ?? undefined,
           coalition_name: entry.coalition_name ?? undefined,
+          badge: entry.badge ?? undefined,
+          badges: entry.badges ?? undefined,
+          alumni: entry.alumni ?? undefined,
+          is_alumni: entry.is_alumni ?? undefined,
           cursus_users: [
             {
               level: entry.level ?? 0,
@@ -401,6 +432,10 @@ export default function LeaderboardScreen({ navigation }: Props) {
             weekly_logtime: entry.weekly_logtime ?? undefined,
             coalition_name: entry.coalition_name ?? undefined,
             blackholed_at: entry.blackholed_at ?? undefined,
+            badge: entry.badge ?? undefined,
+            badges: entry.badges ?? undefined,
+            alumni: entry.alumni ?? undefined,
+            is_alumni: entry.is_alumni ?? undefined,
           })));
           setRankingUpdatedAt(Date.now());
           setRankingComplete(true);
@@ -784,7 +819,14 @@ export default function LeaderboardScreen({ navigation }: Props) {
               )}
             </View>
             <View style={styles.infoBlock}>
-              <Text style={styles.login}>{user.login}</Text>
+              <View style={styles.loginRow}>
+                <Text style={styles.login}>{user.login}</Text>
+                {hasAlumniBadge(user as UserSummary & BadgeCarrier) ? (
+                  <View style={styles.alumniBadge}>
+                    <Text style={styles.alumniBadgeText}>Alumni</Text>
+                  </View>
+                ) : null}
+              </View>
               {shownFields.displayname ? (
                 <Text style={styles.display}>{user.displayname ?? 'Unknown'}</Text>
               ) : null}
@@ -848,7 +890,14 @@ export default function LeaderboardScreen({ navigation }: Props) {
               )}
             </View>
             <View style={styles.infoBlock}>
-              <Text style={styles.login}>{entry.login}</Text>
+              <View style={styles.loginRow}>
+                <Text style={styles.login}>{entry.login}</Text>
+                {hasAlumniBadge(entry) ? (
+                  <View style={styles.alumniBadge}>
+                    <Text style={styles.alumniBadgeText}>Alumni</Text>
+                  </View>
+                ) : null}
+              </View>
               {shownFields.displayname ? (
                 <Text style={styles.display}>{entry.displayname ?? 'Unknown'}</Text>
               ) : null}

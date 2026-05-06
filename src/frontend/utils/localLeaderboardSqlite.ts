@@ -24,6 +24,10 @@ type SnapshotUser = {
   blackholed_at?: string | null;
   coalition_name?: string | null;
   promo?: string | null;
+  badge?: string | null;
+  badges?: string[] | null;
+  alumni?: boolean | null;
+  is_alumni?: boolean | null;
   updatedAt?: number | null;
 };
 
@@ -152,6 +156,10 @@ async function createSchema(db: SQLite.SQLiteDatabase) {
       blackholed_at TEXT,
       coalition_name TEXT,
       promo TEXT,
+      badge TEXT,
+      badges TEXT,
+      alumni INTEGER,
+      is_alumni INTEGER,
       updated_at INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_users_campus ON users(campus_id);
@@ -159,6 +167,18 @@ async function createSchema(db: SQLite.SQLiteDatabase) {
     CREATE INDEX IF NOT EXISTS idx_users_level ON users(level);
     CREATE INDEX IF NOT EXISTS idx_users_login ON users(login COLLATE NOCASE);
   `);
+  const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(users)');
+  const existingColumns = new Set(columns.map((column) => column.name));
+  const userBadgeColumns: Array<[string, string]> = [
+    ['badge', 'TEXT'],
+    ['badges', 'TEXT'],
+    ['alumni', 'INTEGER'],
+    ['is_alumni', 'INTEGER'],
+  ];
+  const missingColumns = userBadgeColumns.filter(([name]) => !existingColumns.has(name));
+  for (const [name, type] of missingColumns) {
+    await db.execAsync(`ALTER TABLE users ADD COLUMN ${name} ${type}`);
+  }
 }
 
 async function seedDb(db: SQLite.SQLiteDatabase, snapshot: LocalLeaderboardSnapshot) {
@@ -179,8 +199,9 @@ async function seedDb(db: SQLite.SQLiteDatabase, snapshot: LocalLeaderboardSnaps
       await db.runAsync(
         `INSERT INTO users (
           id, login, displayname, title, image, campus_id, campus_name, level, weekly_logtime,
-          correction_points, wallets, blackholed_at, coalition_name, promo, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          correction_points, wallets, blackholed_at, coalition_name, promo, badge, badges,
+          alumni, is_alumni, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           user.id,
           user.login,
@@ -196,6 +217,10 @@ async function seedDb(db: SQLite.SQLiteDatabase, snapshot: LocalLeaderboardSnaps
           user.blackholed_at ?? null,
           user.coalition_name ?? null,
           user.promo ?? null,
+          user.badge ?? null,
+          Array.isArray(user.badges) ? JSON.stringify(user.badges) : null,
+          user.alumni ? 1 : 0,
+          user.is_alumni ? 1 : 0,
           user.updatedAt ?? null,
         ],
       );
@@ -371,6 +396,10 @@ export async function getLocalSqliteLeaderboardPage(params: LeaderboardPageParam
       blackholed_at,
       coalition_name,
       promo,
+      badge,
+      badges,
+      alumni,
+      is_alumni,
       updated_at as updatedAt
     FROM users
     ${where}
@@ -412,6 +441,10 @@ export async function getLocalSqliteLeaderboardTop(params: LeaderboardTopParams)
       blackholed_at,
       coalition_name,
       promo,
+      badge,
+      badges,
+      alumni,
+      is_alumni,
       updated_at as updatedAt
     FROM users
     ${topWhere}
