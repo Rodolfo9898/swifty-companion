@@ -77,8 +77,6 @@ const SORT_FIELDS: Record<string, string> = {
   displayname: 'displayname',
   level: 'level',
   weekly_logtime: 'weekly_logtime',
-  correction_points: 'correction_points',
-  wallets: 'wallets',
   campus_name: 'campus_name',
   coalition_name: 'coalition_name',
   blackholed_at: 'blackholed_at',

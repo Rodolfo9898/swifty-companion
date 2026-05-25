@@ -114,10 +114,6 @@ function getSortValue(user: SnapshotUser, field: string) {
       return String(user.displayname || '').toLowerCase();
     case 'weekly_logtime':
       return toNumber(user.weekly_logtime, -1);
-    case 'correction_points':
-      return toNumber(user.correction_points, -1);
-    case 'wallets':
-      return toNumber(user.wallets, -1);
     case 'campus_name':
       return String(user.campusName || '').toLowerCase();
     case 'coalition_name':

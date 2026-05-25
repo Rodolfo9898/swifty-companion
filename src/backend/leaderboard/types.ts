@@ -11,8 +11,11 @@ export interface LeaderboardUser {
   displayname?: string | null;
   title?: string | null;
   image?: string | null;
+  image_url?: string | null;
   campusId?: number | null;
+  campus_id?: number | null;
   campusName?: string | null;
+  campus_name?: string | null;
   level: number | null;
   weekly_logtime?: number | null;
   correction_points?: number | null;
@@ -23,13 +26,16 @@ export interface LeaderboardUser {
   deadline?: string | null;
   deadline_at?: string | null;
   coalition_name?: string | null;
+  begin_at?: string | null;
   promo?: string | null;
   badge?: string | null;
   badges?: string[] | null;
   alumni?: boolean | null;
   is_alumni?: boolean | null;
+  grade?: string | null;
   transcender?: boolean | null;
   is_transcender?: boolean | null;
+  updated_at?: number | string | null;
 }
 
 export interface LeaderboardPage {

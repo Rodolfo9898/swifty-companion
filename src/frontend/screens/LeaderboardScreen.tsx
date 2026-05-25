@@ -38,8 +38,6 @@ type SortField =
   | 'displayname'
   | 'level'
   | 'weekly_logtime'
-  | 'correction_points'
-  | 'wallets'
   | 'campus_name'
   | 'coalition_name'
   | 'blackholed_at';
@@ -48,16 +46,12 @@ const SORT_FIELDS: Array<{ id: SortField; label: string }> = [
   { id: 'login', label: 'Login' },
   { id: 'displayname', label: 'Display name' },
   { id: 'level', label: 'Level' },
-  { id: 'correction_points', label: 'Correction points' },
-  { id: 'wallets', label: 'Wallets' },
   { id: 'campus_name', label: 'Campus' },
 ];
 
 const FIELD_LABELS: Array<{ id: SortField; label: string }> = [
   { id: 'displayname', label: 'Display name' },
   { id: 'level', label: 'Level' },
-  { id: 'correction_points', label: 'Correction points' },
-  { id: 'wallets', label: 'Wallets' },
   { id: 'campus_name', label: 'Campus' },
 ];
 
@@ -81,8 +75,6 @@ type RankedEntry = {
   image?: UserSummary['image'];
   level: number | null;
   campus?: string;
-  correction_points?: number | null;
-  wallets?: number | null;
   weekly_logtime?: number | null;
   coalition_name?: string | null;
   blackholed_at?: string | null;
@@ -94,6 +86,7 @@ type RankedEntry = {
   badges?: string[] | null;
   alumni?: boolean | null;
   is_alumni?: boolean | null;
+  grade?: string | null;
   transcender?: boolean | null;
   is_transcender?: boolean | null;
 };
@@ -132,14 +125,8 @@ const hasAlumniBadge = (entry: BadgeCarrier) => {
   return getBadgeTokens(entry).includes('alumni');
 };
 
-const hasTranscenderBadge = (entry: BadgeCarrier) => {
-  if (entry.transcender || entry.is_transcender) return true;
-  return getBadgeTokens(entry).includes('transcender');
-};
-
 const EMPTY_BADGE_LOGINS = {
   alumni: new Set<string>(),
-  transcender: new Set<string>(),
 };
 
 const isFortyTwoCursus = (user: CursusEntry) => {
@@ -186,6 +173,39 @@ function getUserLevel(user: UserSummary) {
   return null;
 }
 
+type LeaderboardApiEntry = {
+  id: number;
+  login: string;
+  displayname?: string | null;
+  title?: string | null;
+  image?: string | null;
+  image_url?: string | null;
+  campusId?: number | null;
+  campus_id?: number | null;
+  campusName?: string | null;
+  campus_name?: string | null;
+  level: number | null;
+  weekly_logtime?: number | null;
+  blackholed_at?: string | null;
+  milestone_deadline?: string | null;
+  milestone_deadline_at?: string | null;
+  deadline?: string | null;
+  deadline_at?: string | null;
+  coalition_name?: string | null;
+  begin_at?: string | null;
+  promo?: string | null;
+  badge?: string | null;
+  badges?: string[] | null;
+  alumni?: boolean | null;
+  is_alumni?: boolean | null;
+  grade?: string | null;
+  transcender?: boolean | null;
+  is_transcender?: boolean | null;
+};
+
+const getLeaderboardImage = (entry: LeaderboardApiEntry) => entry.image_url || entry.image || undefined;
+const getLeaderboardCampus = (entry: LeaderboardApiEntry) => entry.campus_name || entry.campusName || undefined;
+
 export default function LeaderboardScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createLeaderboardStyles(colors), [colors]);
@@ -223,8 +243,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
     displayname: true,
     level: true,
     weekly_logtime: false,
-    correction_points: false,
-    wallets: false,
     campus_name: true,
     coalition_name: false,
     blackholed_at: false,
@@ -285,13 +303,11 @@ export default function LeaderboardScreen({ navigation }: Props) {
           id: entry.id,
           login: entry.login,
           displayname: entry.displayname ?? undefined,
-          image: entry.image ? { link: entry.image } : undefined,
+          image: getLeaderboardImage(entry) ? { link: getLeaderboardImage(entry) } : undefined,
           level: entry.level ?? undefined,
           title: entry.title ?? undefined,
-          campus: entry.campusName ?? undefined,
+          campus: getLeaderboardCampus(entry),
           weekly_logtime: entry.weekly_logtime ?? undefined,
-          correction_points: entry.correction_points ?? undefined,
-          wallets: entry.wallets ?? undefined,
           blackholed_at: entry.blackholed_at ?? undefined,
           milestone_deadline: entry.milestone_deadline ?? undefined,
           milestone_deadline_at: entry.milestone_deadline_at ?? undefined,
@@ -302,6 +318,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           badges: entry.badges ?? undefined,
           alumni: entry.alumni ?? undefined,
           is_alumni: entry.is_alumni ?? undefined,
+          grade: entry.grade ?? undefined,
           transcender: entry.transcender ?? undefined,
           is_transcender: entry.is_transcender ?? undefined,
           cursus_users: [
@@ -446,7 +463,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
           sort: 'asc' as const,
           perPage: 100,
         };
-        const fetchLogins = async (badge: 'alumni' | 'transcender') => {
+        const fetchLogins = async (badge: 'alumni') => {
           const logins = new Set<string>();
           let pageIndex = 1;
           let totalPagesForBadge = 1;
@@ -465,12 +482,9 @@ export default function LeaderboardScreen({ navigation }: Props) {
           }
           return logins;
         };
-        const [alumni, transcender] = await Promise.all([
-          fetchLogins('alumni'),
-          fetchLogins('transcender'),
-        ]);
+        const [alumni] = await Promise.all([fetchLogins('alumni')]);
         if (!cancelled) {
-          setBadgeLogins({ alumni, transcender });
+          setBadgeLogins({ alumni });
         }
       } catch {
         if (!cancelled) {
@@ -512,11 +526,9 @@ export default function LeaderboardScreen({ navigation }: Props) {
           setRankingEntries(entries.map((entry) => ({
             login: entry.login,
             displayname: entry.displayname ?? undefined,
-            image: entry.image ? { link: entry.image } : undefined,
+            image: getLeaderboardImage(entry) ? { link: getLeaderboardImage(entry) } : undefined,
             level: entry.level ?? null,
-            campus: entry.campusName ?? undefined,
-            correction_points: entry.correction_points ?? undefined,
-            wallets: entry.wallets ?? undefined,
+            campus: getLeaderboardCampus(entry),
             weekly_logtime: entry.weekly_logtime ?? undefined,
             coalition_name: entry.coalition_name ?? undefined,
             blackholed_at: entry.blackholed_at ?? undefined,
@@ -528,6 +540,7 @@ export default function LeaderboardScreen({ navigation }: Props) {
             badges: entry.badges ?? undefined,
             alumni: entry.alumni ?? undefined,
             is_alumni: entry.is_alumni ?? undefined,
+            grade: entry.grade ?? undefined,
             transcender: entry.transcender ?? undefined,
             is_transcender: entry.is_transcender ?? undefined,
           })));
@@ -927,16 +940,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
               {shownFields.campus_name && (user as UserSummary & { campus?: string }).campus ? (
                 <Text style={styles.display}>{(user as UserSummary & { campus?: string }).campus}</Text>
               ) : null}
-              {shownFields.correction_points && (user as UserSummary & { correction_points?: number }).correction_points !== undefined ? (
-                <Text style={styles.display}>
-                  Correction points: {(user as UserSummary & { correction_points?: number }).correction_points}
-                </Text>
-              ) : null}
-              {shownFields.wallets && (user as UserSummary & { wallets?: number }).wallets !== undefined ? (
-                <Text style={styles.display}>
-                  Wallets: {(user as UserSummary & { wallets?: number }).wallets}
-                </Text>
-              ) : null}
               {shownFields.weekly_logtime && (user as UserSummary & { weekly_logtime?: number }).weekly_logtime !== undefined ? (
                 <Text style={styles.display}>
                   Weekly logtime: {(user as UserSummary & { weekly_logtime?: number }).weekly_logtime} min
@@ -997,16 +1000,6 @@ export default function LeaderboardScreen({ navigation }: Props) {
               ) : null}
               {shownFields.campus_name && (entry as RankedEntry & { campus?: string }).campus ? (
                 <Text style={styles.display}>{(entry as RankedEntry & { campus?: string }).campus}</Text>
-              ) : null}
-              {shownFields.correction_points && (entry as RankedEntry & { correction_points?: number }).correction_points !== undefined ? (
-                <Text style={styles.display}>
-                  Correction points: {(entry as RankedEntry & { correction_points?: number }).correction_points}
-                </Text>
-              ) : null}
-              {shownFields.wallets && (entry as RankedEntry & { wallets?: number }).wallets !== undefined ? (
-                <Text style={styles.display}>
-                  Wallets: {(entry as RankedEntry & { wallets?: number }).wallets}
-                </Text>
               ) : null}
               {shownFields.weekly_logtime && (entry as RankedEntry & { weekly_logtime?: number }).weekly_logtime !== undefined ? (
                 <Text style={styles.display}>
