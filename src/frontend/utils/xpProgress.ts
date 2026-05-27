@@ -19,6 +19,9 @@ export const XP_REQUIRED = [
   399672, 457632, 523320, 597786, 682164, 777756, 886074, 1008798, 1147902, 1305486, 1484070,
 ];
 
+const LAST_KNOWN_LEVEL = XP_REQUIRED.length - 1;
+const LAST_KNOWN_LEVEL_SPAN = XP_REQUIRED[LAST_KNOWN_LEVEL] - XP_REQUIRED[LAST_KNOWN_LEVEL - 1];
+
 export function getPrimaryLevel(levels: Array<{ level: number }> | undefined): number {
   if (!levels || levels.length === 0) return 0;
   return Math.max(...levels.map((entry) => entry.level));
@@ -27,6 +30,9 @@ export function getPrimaryLevel(levels: Array<{ level: number }> | undefined): n
 export function levelToTotalXp(level: number): number {
   const safeLevel = Number.isFinite(level) ? Math.max(0, level) : 0;
   const levelFloor = Math.floor(safeLevel);
+  if (levelFloor >= LAST_KNOWN_LEVEL) {
+    return XP_REQUIRED[LAST_KNOWN_LEVEL] + (safeLevel - LAST_KNOWN_LEVEL) * LAST_KNOWN_LEVEL_SPAN;
+  }
   const baseXp = XP_REQUIRED[levelFloor] ?? XP_REQUIRED[XP_REQUIRED.length - 1];
   const nextXp = XP_REQUIRED[levelFloor + 1] ?? baseXp;
   const progressIntoLevel = (safeLevel - levelFloor) * (nextXp - baseXp);
@@ -38,6 +44,9 @@ export function totalXpToLevel(totalXp: number): number {
   let levelIndex = 0;
   while (XP_REQUIRED[levelIndex + 1] !== undefined && XP_REQUIRED[levelIndex + 1] <= safeXp) {
     levelIndex += 1;
+  }
+  if (levelIndex >= LAST_KNOWN_LEVEL) {
+    return LAST_KNOWN_LEVEL + (safeXp - XP_REQUIRED[LAST_KNOWN_LEVEL]) / LAST_KNOWN_LEVEL_SPAN;
   }
   const rangeStart = XP_REQUIRED[levelIndex] ?? 0;
   const rangeEnd = XP_REQUIRED[levelIndex + 1] ?? rangeStart + 1;
